@@ -10,7 +10,7 @@ import type { Team } from '@/types';
 
 export default function AdminSubmissions() {
   const { user, teams } = useAuth();
-  if (!user || user.role !== 'admin') return <Navigate to="/admin-login" replace />;
+  if (!user || user.role !== 'admin') return <Navigate to="/admin" replace />;
 
   const submitted = teams.filter((t) => t.submissionStatus === 'submitted');
 

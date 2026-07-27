@@ -25,7 +25,7 @@ export default function AdminTeams() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  if (!user || user.role !== 'admin') return <Navigate to="/admin-login" replace />;
+  if (!user || user.role !== 'admin') return <Navigate to="/admin" replace />;
 
   const handleRefresh = async () => {
     setRefreshing(true);

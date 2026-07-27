@@ -30,7 +30,6 @@ export default function Footer() {
                 { label: 'About', to: '/about' },
                 { label: 'Register', to: '/register' },
                 { label: 'Student Login', to: '/student-login' },
-                { label: 'Admin Login', to: '/admin-login' },
               ].map((l) => (
                 <li key={l.to}>
                   <Link to={l.to} className="text-sm text-slate-500 transition-colors hover:text-brand-600 dark:text-slate-400 dark:hover:text-brand-300">

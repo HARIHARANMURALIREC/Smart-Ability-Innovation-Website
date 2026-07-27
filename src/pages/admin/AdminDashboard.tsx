@@ -23,7 +23,7 @@ export default function AdminDashboard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  if (!user || user.role !== 'admin') return <Navigate to="/admin-login" replace />;
+  if (!user || user.role !== 'admin') return <Navigate to="/admin" replace />;
 
   const totalStudents = teams.reduce((s, t) => s + teamMemberCount(t), 0);
   const submitted = teams.filter((t) => t.submissionStatus === 'submitted').length;

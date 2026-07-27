@@ -28,7 +28,7 @@ export default function AdminSettings() {
   const navigate = useNavigate();
   const [notifOn, setNotifOn] = useLocalStorage('sh_notifications_enabled', true);
 
-  if (!user || user.role !== 'admin') return <Navigate to="/admin-login" replace />;
+  if (!user || user.role !== 'admin') return <Navigate to="/admin" replace />;
 
   const handleLogout = () => {
     logout();

@@ -144,5 +144,4 @@ export const NAV_LINKS = [
   { label: 'About', to: '/about' },
   { label: 'Register', to: '/register' },
   { label: 'Student Login', to: '/student-login' },
-  { label: 'Admin Login', to: '/admin-login' },
 ];

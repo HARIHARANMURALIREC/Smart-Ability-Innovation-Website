@@ -28,6 +28,7 @@ const AdminTeams = lazy(() => import('@/pages/admin/AdminTeams'));
 const AdminSubmissions = lazy(() => import('@/pages/admin/AdminSubmissions'));
 const AdminAnalytics = lazy(() => import('@/pages/admin/AdminAnalytics'));
 const AdminSettings = lazy(() => import('@/pages/admin/AdminSettings'));
+const AdminLoginPage = lazy(() => import('@/pages/admin/AdminLoginPage'));
 
 function PageFallback() {
   return (
@@ -50,8 +51,8 @@ const router = createBrowserRouter([
       { path: '/register', element: <RegisterPage /> },
       { path: '/register-team-leader', element: <TeamLeaderRegisterPage /> },
       { path: '/member-register', element: <MemberRegisterPage /> },
-      { path: '/student-login', element: <LoginPage mode="student" /> },
-      { path: '/admin-login', element: <LoginPage mode="admin" /> },
+      { path: '/student-login', element: <LoginPage /> },
+      { path: '/admin-login', element: <Navigate to="/admin" replace /> },
     ],
   },
   {
@@ -84,17 +85,22 @@ const router = createBrowserRouter([
   },
   {
     path: '/admin',
-    element: (
-      <ProtectedRoute role="admin">
-        <AdminLayout />
-      </ProtectedRoute>
-    ),
     children: [
-      { path: 'dashboard', element: <AdminDashboard /> },
-      { path: 'teams', element: <AdminTeams /> },
-      { path: 'submissions', element: <AdminSubmissions /> },
-      { path: 'analytics', element: <AdminAnalytics /> },
-      { path: 'settings', element: <AdminSettings /> },
+      { index: true, element: <AdminLoginPage /> },
+      {
+        element: (
+          <ProtectedRoute role="admin">
+            <AdminLayout />
+          </ProtectedRoute>
+        ),
+        children: [
+          { path: 'dashboard', element: <AdminDashboard /> },
+          { path: 'teams', element: <AdminTeams /> },
+          { path: 'submissions', element: <AdminSubmissions /> },
+          { path: 'analytics', element: <AdminAnalytics /> },
+          { path: 'settings', element: <AdminSettings /> },
+        ],
+      },
     ],
   },
   { path: '*', element: <NotFoundPage /> },
