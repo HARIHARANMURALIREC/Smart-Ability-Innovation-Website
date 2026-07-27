@@ -75,7 +75,7 @@ export default function AdminSidebar() {
             className={({ isActive }) =>
               `flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all ${
                 isActive
-                  ? 'bg-gradient-to-r from-brand-600 to-accent-600 text-white shadow-glow'
+                  ? 'bg-brand-600 text-white'
                   : 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800'
               } ${opts.expanded ? '' : 'justify-center'}`
             }
