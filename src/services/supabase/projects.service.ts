@@ -1,16 +1,25 @@
 /**
  * Supabase Projects Service
- * Handles project operations
  */
 
 import { supabase } from '@/config/supabase';
 
 export async function getAllProjects(): Promise<{ projects: any[] | null; error: string | null }> {
   try {
-    const { data, error } = await supabase
+    let { data, error } = await supabase
       .from('projects')
-      .select()
-      .order('created_at', { ascending: false });
+      .select('*')
+      .order('createdat', { ascending: false });
+
+    if (error) {
+      ({ data, error } = await supabase
+        .from('projects')
+        .select('*')
+        .order('created_at', { ascending: false }));
+    }
+    if (error) {
+      ({ data, error } = await supabase.from('projects').select('*'));
+    }
 
     if (error) return { projects: null, error: error.message };
     return { projects: data, error: null };
@@ -20,14 +29,11 @@ export async function getAllProjects(): Promise<{ projects: any[] | null; error:
   }
 }
 
-export async function getProjectById(projectId: string): Promise<{ project: any | null; error: string | null }> {
+export async function getProjectById(
+  projectId: string
+): Promise<{ project: any | null; error: string | null }> {
   try {
-    const { data, error } = await supabase
-      .from('projects')
-      .select()
-      .eq('id', projectId)
-      .single();
-
+    const { data, error } = await supabase.from('projects').select('*').eq('id', projectId).single();
     if (error) return { project: null, error: error.message };
     return { project: data, error: null };
   } catch (error) {
@@ -36,13 +42,14 @@ export async function getProjectById(projectId: string): Promise<{ project: any 
   }
 }
 
-export async function getProjectsByDifficulty(difficulty: string): Promise<{ projects: any[] | null; error: string | null }> {
+export async function getProjectsByDifficulty(
+  difficulty: string
+): Promise<{ projects: any[] | null; error: string | null }> {
   try {
     const { data, error } = await supabase
       .from('projects')
-      .select()
+      .select('*')
       .eq('difficulty', difficulty);
-
     if (error) return { projects: null, error: error.message };
     return { projects: data, error: null };
   } catch (error) {
@@ -51,13 +58,15 @@ export async function getProjectsByDifficulty(difficulty: string): Promise<{ pro
   }
 }
 
-export async function searchProjects(query: string): Promise<{ projects: any[] | null; error: string | null }> {
+export async function searchProjects(
+  query: string
+): Promise<{ projects: any[] | null; error: string | null }> {
   try {
+    const q = query.replace(/[%_,]/g, ' ').trim();
     const { data, error } = await supabase
       .from('projects')
-      .select()
-      .or(`title.ilike.%${query}%,abstract.ilike.%${query}%,problem_statement.ilike.%${query}%`);
-
+      .select('*')
+      .or(`title.ilike.%${q}%,abstract.ilike.%${q}%,problem_statement.ilike.%${q}%`);
     if (error) return { projects: null, error: error.message };
     return { projects: data, error: null };
   } catch (error) {
@@ -66,14 +75,11 @@ export async function searchProjects(query: string): Promise<{ projects: any[] |
   }
 }
 
-export async function createProject(input: any): Promise<{ project: any | null; error: string | null }> {
+export async function createProject(
+  input: any
+): Promise<{ project: any | null; error: string | null }> {
   try {
-    const { data, error } = await supabase
-      .from('projects')
-      .insert([input])
-      .select()
-      .single();
-
+    const { data, error } = await supabase.from('projects').insert([input]).select().single();
     if (error) return { project: null, error: error.message };
     return { project: data, error: null };
   } catch (error) {
@@ -90,9 +96,7 @@ export async function getProjectsStats(): Promise<{
   error: string | null;
 }> {
   try {
-    const { data, error } = await supabase
-      .from('projects')
-      .select('difficulty');
+    const { data, error } = await supabase.from('projects').select('difficulty');
 
     if (error) {
       return {
@@ -104,15 +108,11 @@ export async function getProjectsStats(): Promise<{
       };
     }
 
-    const beginner = data?.filter((p: any) => p.difficulty === 'beginner').length || 0;
-    const intermediate = data?.filter((p: any) => p.difficulty === 'intermediate').length || 0;
-    const advanced = data?.filter((p: any) => p.difficulty === 'advanced').length || 0;
-
     return {
       totalProjects: data?.length || 0,
-      beginnerProjects: beginner,
-      intermediateProjects: intermediate,
-      advancedProjects: advanced,
+      beginnerProjects: data?.filter((p: any) => p.difficulty === 'beginner').length || 0,
+      intermediateProjects: data?.filter((p: any) => p.difficulty === 'intermediate').length || 0,
+      advancedProjects: data?.filter((p: any) => p.difficulty === 'advanced').length || 0,
       error: null,
     };
   } catch (error) {

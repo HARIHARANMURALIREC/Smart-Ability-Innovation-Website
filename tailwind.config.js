@@ -10,6 +10,10 @@ export default {
         mono: ['JetBrains Mono', 'monospace'],
       },
       colors: {
+        slate: {
+          900: '#000000',
+          950: '#000000',
+        },
         brand: {
           50: '#eef2ff',
           100: '#e0e7ff',
@@ -43,7 +47,8 @@ export default {
       backgroundImage: {
         'brand-gradient': 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #0ea5e9 100%)',
         'brand-gradient-soft': 'linear-gradient(135deg, #eef2ff 0%, #f5f3ff 100%)',
-        'hero-mesh': 'radial-gradient(ellipse at top left, rgba(99,102,241,0.15), transparent 50%), radial-gradient(ellipse at bottom right, rgba(124,58,237,0.15), transparent 50%)',
+        'hero-mesh':
+          'radial-gradient(ellipse at top left, rgba(99,102,241,0.15), transparent 50%), radial-gradient(ellipse at bottom right, rgba(124,58,237,0.15), transparent 50%)',
       },
       boxShadow: {
         glass: '0 8px 32px rgba(31, 38, 135, 0.12)',
@@ -71,12 +76,21 @@ export default {
           '0%, 100%': { backgroundPosition: '0% 50%' },
           '50%': { backgroundPosition: '100% 50%' },
         },
+        'heart-colors': {
+          '0%, 100%': { color: '#f43f5e', fill: '#f43f5e' },
+          '16%': { color: '#a855f7', fill: '#a855f7' },
+          '33%': { color: '#3b82f6', fill: '#3b82f6' },
+          '50%': { color: '#10b981', fill: '#10b981' },
+          '66%': { color: '#f59e0b', fill: '#f59e0b' },
+          '83%': { color: '#ec4899', fill: '#ec4899' },
+        },
       },
       animation: {
         'fade-in': 'fade-in 0.5s ease-out',
         float: 'float 6s ease-in-out infinite',
         shimmer: 'shimmer 1.5s infinite',
         'gradient-x': 'gradient-x 6s ease infinite',
+        'heart-colors': 'heart-colors 3s ease-in-out infinite',
       },
     },
   },

@@ -1,10 +1,10 @@
 import { motion } from 'framer-motion';
-import { ArrowRight, Rocket, Users, ShieldCheck, Sparkles } from 'lucide-react';
+import { ArrowRight, Rocket, Users, Sparkles } from 'lucide-react';
 import Button from '@/components/ui/Button';
 
 export default function Hero() {
   return (
-    <section className="relative overflow-hidden bg-hero-mesh pt-32 pb-20 sm:pt-40">
+    <section className="relative overflow-hidden bg-hero-mesh pt-36 pb-20 sm:pt-44">
       {/* glowing blobs */}
       <div className="pointer-events-none absolute -top-24 left-1/4 h-72 w-72 rounded-full bg-brand-500/20 blur-[120px]" />
       <div className="pointer-events-none absolute -top-10 right-1/4 h-72 w-72 rounded-full bg-accent-500/20 blur-[120px]" />
@@ -69,9 +69,6 @@ export default function Hero() {
             </Button>
             <Button to="/student-login" size="lg" variant="secondary" icon={Users}>
               Student Login
-            </Button>
-            <Button to="/admin-login" size="lg" variant="secondary" icon={ShieldCheck}>
-              Admin Login
             </Button>
           </motion.div>
 

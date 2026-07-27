@@ -1,15 +1,20 @@
 import { motion } from 'framer-motion';
-import { Navigate, Link } from 'react-router-dom';
 import {
-  Trophy, Users, Building2, GraduationCap, Calendar, FileText, Crown, Mail, ArrowLeft, CheckCircle2,
+  Trophy,
+  Users,
+  Building2,
+  GraduationCap,
+  Calendar,
+  FileText,
+  Crown,
+  CheckCircle2,
 } from 'lucide-react';
-import { useAuth } from '@/context/AuthContext';
 import { teamProgress, teamMemberCount, statusLabel } from '@/utils';
 import DashboardHeader from '@/components/admin/DashboardHeader';
 import StatusBadge from '@/components/ui/StatusBadge';
-import BgWatermark from '@/components/ui/BgWatermark';
 import Avatar from '@/components/ui/Avatar';
 import Progress from '@/components/ui/Progress';
+import { useStudentTeam } from '@/hooks';
 
 function DetailRow({ icon: Icon, label, value }: { icon: typeof Trophy; label: string; value: string }) {
   return (
@@ -25,28 +30,24 @@ function DetailRow({ icon: Icon, label, value }: { icon: typeof Trophy; label: s
   );
 }
 
-export default function TeamDetailsPage() {
-  const { user, teams } = useAuth();
-
-  if (!user || user.role !== 'student') return <Navigate to="/student-login" replace />;
-  const team = teams.find((t) => t.id === user.teamId);
-  if (!team) return <Navigate to="/student-login" replace />;
-
+export default function StudentTeam() {
+  const team = useStudentTeam();
   const progress = teamProgress(team);
 
   return (
-    <div className="relative min-h-screen bg-slate-100 dark:bg-slate-950">
-      <BgWatermark />
+    <div className="min-h-screen">
       <DashboardHeader
-        title="Team Details"
+        title="My Team"
         subtitle={`Full breakdown of ${team.teamName}`}
-        breadcrumbs={[{ label: 'Student', to: '/student/dashboard' }, { label: 'Team Details' }]}
-        actions={<Link to="/student/dashboard" className="btn-ghost"><ArrowLeft className="h-4 w-4" /> Dashboard</Link>}
+        breadcrumbs={[{ label: 'Student', to: '/student/dashboard' }, { label: 'My Team' }]}
       />
 
-      <div className="mx-auto max-w-5xl space-y-6 px-4 py-6 sm:px-6 lg:px-8">
-        {/* Team header */}
-        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="glass-card relative overflow-hidden p-6 sm:p-8">
+      <div className="mx-auto max-w-7xl space-y-6 px-4 py-6 sm:px-6 lg:px-8">
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="glass-card relative overflow-hidden p-6 sm:p-8"
+        >
           <div className="pointer-events-none absolute -right-12 -top-12 h-40 w-40 rounded-full bg-brand-500/10 blur-3xl" />
           <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-4">
@@ -70,7 +71,6 @@ export default function TeamDetailsPage() {
           </div>
         </motion.div>
 
-        {/* Details grid */}
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <DetailRow icon={Trophy} label="Team Name" value={team.teamName} />
           <DetailRow icon={Crown} label="Team Leader" value={team.leaderName} />
@@ -80,7 +80,6 @@ export default function TeamDetailsPage() {
           <DetailRow icon={Users} label="Total Members" value={String(teamMemberCount(team))} />
         </div>
 
-        {/* Members list */}
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="glass-card p-6">
           <h3 className="mb-4 font-display text-base font-bold text-slate-900 dark:text-white">Team Members</h3>
           <div className="space-y-3">
@@ -95,7 +94,10 @@ export default function TeamDetailsPage() {
               </span>
             </div>
             {team.members.map((m, i) => (
-              <div key={i} className="flex items-center gap-3 rounded-xl border border-slate-200/60 bg-white/40 p-3 dark:border-slate-700/60 dark:bg-slate-800/30">
+              <div
+                key={i}
+                className="flex items-center gap-3 rounded-xl border border-slate-200/60 bg-white/40 p-3 dark:border-slate-700/60 dark:bg-slate-800/30"
+              >
                 <Avatar name={m.name} size="md" />
                 <div className="flex-1">
                   <p className="text-sm font-semibold text-slate-900 dark:text-white">{m.name}</p>
@@ -105,12 +107,13 @@ export default function TeamDetailsPage() {
               </div>
             ))}
             {team.members.length === 0 && (
-              <p className="rounded-xl bg-slate-50/60 p-4 text-center text-sm text-slate-400 dark:bg-slate-800/40">No additional members added.</p>
+              <p className="rounded-xl bg-slate-50/60 p-4 text-center text-sm text-slate-400 dark:bg-slate-800/40">
+                No additional members added.
+              </p>
             )}
           </div>
         </motion.div>
 
-        {/* Submission status */}
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="glass-card p-6">
           <h3 className="mb-4 font-display text-base font-bold text-slate-900 dark:text-white">Submission Status</h3>
           <div className="grid gap-4 sm:grid-cols-2">
@@ -118,14 +121,18 @@ export default function TeamDetailsPage() {
               <FileText className="h-6 w-6 text-brand-600 dark:text-brand-300" />
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Uploaded PDF</p>
-                <p className="text-sm font-semibold text-slate-900 dark:text-white">{team.pdfName ?? 'Not uploaded yet'}</p>
+                <p className="text-sm font-semibold text-slate-900 dark:text-white">
+                  {team.pdfName ?? 'Not uploaded yet'}
+                </p>
               </div>
             </div>
             <div className="flex items-center gap-3 rounded-xl border border-slate-200/60 bg-white/40 p-4 dark:border-slate-700/60 dark:bg-slate-800/30">
               <CheckCircle2 className="h-6 w-6 text-brand-600 dark:text-brand-300" />
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Status</p>
-                <p className="text-sm font-semibold text-slate-900 dark:text-white">{statusLabel(team.submissionStatus)}</p>
+                <p className="text-sm font-semibold text-slate-900 dark:text-white">
+                  {statusLabel(team.submissionStatus)}
+                </p>
               </div>
             </div>
           </div>

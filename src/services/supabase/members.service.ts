@@ -1,64 +1,93 @@
 /**
  * Supabase Team Members Service
- * Handles team member operations
- * 
- * @module services/supabase/members.service
+ * Handles team_members table operations (lowercase columns)
  */
 
 import { supabase } from '@/config/supabase';
+import { uid } from '@/utils';
+import type { TeamMember } from '@/types';
 
-/**
- * Add team member
- */
-export async function addTeamMember(input: any): Promise<{ member: any | null; error: string | null }> {
+export interface DbTeamMember {
+  id: string;
+  team_id: string;
+  name: string;
+  email: string;
+  department: string;
+  year: string;
+  status?: string;
+  joined_at?: string | null;
+}
+
+export async function addTeamMember(input: {
+  teamId: string;
+  member: TeamMember;
+  id?: string;
+}): Promise<{ member: DbTeamMember | null; error: string | null }> {
   try {
-    const { data, error } = await supabase
-      .from('team_members')
-      .insert([input])
-      .select()
-      .single();
+    const row = {
+      id: input.id || uid('member'),
+      team_id: input.teamId,
+      name: input.member.name,
+      email: input.member.email.trim().toLowerCase(),
+      department: input.member.department,
+      year: String(input.member.year),
+      status: 'accepted',
+      joined_at: new Date().toISOString(),
+    };
+
+    const { data, error } = await supabase.from('team_members').insert([row]).select().single();
 
     if (error) {
       return { member: null, error: error.message };
     }
 
-    return { member: data, error: null };
+    return { member: data as DbTeamMember, error: null };
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to add team member';
     return { member: null, error: message };
   }
 }
 
-/**
- * Get team members
- */
-export async function getTeamMembers(teamId: string): Promise<{ members: any[] | null; error: string | null }> {
+export async function getTeamMembers(
+  teamId: string
+): Promise<{ members: DbTeamMember[] | null; error: string | null }> {
   try {
-    const { data, error } = await supabase
+    let { data, error } = await supabase
       .from('team_members')
-      .select()
+      .select('*')
       .eq('team_id', teamId)
-      .order('created_at', { ascending: true });
+      .order('createdat', { ascending: true });
+
+    if (error && /column|schema cache|Could not find|42703/i.test(error.message)) {
+      ({ data, error } = await supabase
+        .from('team_members')
+        .select('*')
+        .eq('team_id', teamId)
+        .order('created_at', { ascending: true }));
+    }
+
+    if (error) {
+      ({ data, error } = await supabase.from('team_members').select('*').eq('team_id', teamId));
+    }
 
     if (error) {
       return { members: null, error: error.message };
     }
 
-    return { members: data, error: null };
+    return { members: (data || []) as DbTeamMember[], error: null };
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to fetch team members';
     return { members: null, error: message };
   }
 }
 
-/**
- * Get team member by ID
- */
-export async function getTeamMemberById(memberId: string): Promise<{ member: any | null; error: string | null }> {
+export async function getTeamMemberById(
+  memberId: string
+): Promise<{ member: DbTeamMember | null; error: string | null }> {
   try {
     const { data, error } = await supabase
       .from('team_members')
-      .select()
+      .select('*')
       .eq('id', memberId)
       .single();
 
@@ -66,17 +95,17 @@ export async function getTeamMemberById(memberId: string): Promise<{ member: any
       return { member: null, error: error.message };
     }
 
-    return { member: data, error: null };
+    return { member: data as DbTeamMember, error: null };
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to fetch team member';
     return { member: null, error: message };
   }
 }
 
-/**
- * Update team member
- */
-export async function updateTeamMember(memberId: string, updates: any): Promise<{ member: any | null; error: string | null }> {
+export async function updateTeamMember(
+  memberId: string,
+  updates: Partial<DbTeamMember>
+): Promise<{ member: DbTeamMember | null; error: string | null }> {
   try {
     const { data, error } = await supabase
       .from('team_members')
@@ -89,27 +118,17 @@ export async function updateTeamMember(memberId: string, updates: any): Promise<
       return { member: null, error: error.message };
     }
 
-    return { member: data, error: null };
+    return { member: data as DbTeamMember, error: null };
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to update team member';
     return { member: null, error: message };
   }
 }
 
-/**
- * Remove team member
- */
 export async function removeTeamMember(memberId: string): Promise<{ error: string | null }> {
   try {
-    const { error } = await supabase
-      .from('team_members')
-      .delete()
-      .eq('id', memberId);
-
-    if (error) {
-      return { error: error.message };
-    }
-
+    const { error } = await supabase.from('team_members').delete().eq('id', memberId);
+    if (error) return { error: error.message };
     return { error: null };
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to remove team member';
@@ -117,58 +136,20 @@ export async function removeTeamMember(memberId: string): Promise<{ error: strin
   }
 }
 
-/**
- * Accept team invitation
- */
-export async function acceptInvitation(memberId: string): Promise<{ member: any | null; error: string | null }> {
-  try {
-    const { data, error } = await supabase
-      .from('team_members')
-      .update({
-        status: 'accepted',
-        joined_at: new Date().toISOString(),
-      })
-      .eq('id', memberId)
-      .select()
-      .single();
-
-    if (error) {
-      return { member: null, error: error.message };
-    }
-
-    return { member: data, error: null };
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'Failed to accept invitation';
-    return { member: null, error: message };
-  }
+export async function acceptInvitation(
+  memberId: string
+): Promise<{ member: DbTeamMember | null; error: string | null }> {
+  return updateTeamMember(memberId, {
+    status: 'accepted',
+    joined_at: new Date().toISOString(),
+  });
 }
 
-/**
- * Reject team invitation
- */
 export async function rejectInvitation(memberId: string): Promise<{ error: string | null }> {
-  try {
-    const { error } = await supabase
-      .from('team_members')
-      .update({
-        status: 'rejected',
-      })
-      .eq('id', memberId);
-
-    if (error) {
-      return { error: error.message };
-    }
-
-    return { error: null };
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'Failed to reject invitation';
-    return { error: message };
-  }
+  const { error } = await updateTeamMember(memberId, { status: 'rejected' });
+  return { error };
 }
 
-/**
- * Get member stats
- */
 export async function getMemberStats(teamId: string): Promise<{
   totalMembers: number;
   acceptedMembers: number;
@@ -182,12 +163,7 @@ export async function getMemberStats(teamId: string): Promise<{
       .eq('team_id', teamId);
 
     if (error) {
-      return {
-        totalMembers: 0,
-        acceptedMembers: 0,
-        pendingMembers: 0,
-        error: error.message,
-      };
+      return { totalMembers: 0, acceptedMembers: 0, pendingMembers: 0, error: error.message };
     }
 
     const accepted = data?.filter((m: any) => m.status === 'accepted').length || 0;
@@ -201,11 +177,6 @@ export async function getMemberStats(teamId: string): Promise<{
     };
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to fetch member stats';
-    return {
-      totalMembers: 0,
-      acceptedMembers: 0,
-      pendingMembers: 0,
-      error: message,
-    };
+    return { totalMembers: 0, acceptedMembers: 0, pendingMembers: 0, error: message };
   }
 }

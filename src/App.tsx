@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react';
-import { createBrowserRouter, RouterProvider } from 'react-router-dom';
+import { createBrowserRouter, Navigate, RouterProvider } from 'react-router-dom';
 import { AuthProvider } from '@/context/AuthContext';
 import { ThemeProvider } from '@/context/ThemeContext';
 import { ToastProvider } from '@/context/ToastContext';
@@ -7,16 +7,19 @@ import ProtectedRoute from '@/routes/ProtectedRoute';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import { CardSkeleton } from '@/components/ui/Skeleton';
 
-// Lazy-load pages for code-splitting and to show the page-transition skeletons.
 const PublicLayout = lazy(() => import('@/layouts/PublicLayout'));
 const AdminLayout = lazy(() => import('@/layouts/AdminLayout'));
+const StudentLayout = lazy(() => import('@/layouts/StudentLayout'));
 const LandingPage = lazy(() => import('@/pages/LandingPage'));
 const AboutPage = lazy(() => import('@/pages/AboutPage'));
 const RegisterPage = lazy(() => import('@/pages/RegisterPage'));
 const LoginPage = lazy(() => import('@/pages/LoginPage'));
 const NotFoundPage = lazy(() => import('@/pages/NotFoundPage'));
-const StudentDashboard = lazy(() => import('@/pages/StudentDashboard'));
-const TeamDetailsPage = lazy(() => import('@/pages/TeamDetailsPage'));
+const StudentDashboard = lazy(() => import('@/pages/student/StudentDashboard'));
+const StudentProblems = lazy(() => import('@/pages/student/StudentProblems'));
+const StudentSubmission = lazy(() => import('@/pages/student/StudentSubmission'));
+const StudentTeam = lazy(() => import('@/pages/student/StudentTeam'));
+const StudentDocuments = lazy(() => import('@/pages/student/StudentDocuments'));
 const TeamMembersSetupPage = lazy(() => import('@/pages/TeamMembersSetupPage'));
 const MemberRegisterPage = lazy(() => import('@/pages/MemberRegisterPage'));
 const TeamLeaderRegisterPage = lazy(() => import('@/pages/TeamLeaderRegisterPage'));
@@ -25,7 +28,6 @@ const AdminTeams = lazy(() => import('@/pages/admin/AdminTeams'));
 const AdminSubmissions = lazy(() => import('@/pages/admin/AdminSubmissions'));
 const AdminAnalytics = lazy(() => import('@/pages/admin/AdminAnalytics'));
 const AdminSettings = lazy(() => import('@/pages/admin/AdminSettings'));
-const AdminDebugger = lazy(() => import('@/pages/admin/AdminDebugger'));
 
 function PageFallback() {
   return (
@@ -53,14 +55,6 @@ const router = createBrowserRouter([
     ],
   },
   {
-    path: '/student/dashboard',
-    element: (
-      <ProtectedRoute role="student">
-        <StudentDashboard />
-      </ProtectedRoute>
-    ),
-  },
-  {
     path: '/student/setup-members',
     element: (
       <ProtectedRoute role="student">
@@ -69,12 +63,24 @@ const router = createBrowserRouter([
     ),
   },
   {
-    path: '/team-details',
+    path: '/student',
     element: (
       <ProtectedRoute role="student">
-        <TeamDetailsPage />
+        <StudentLayout />
       </ProtectedRoute>
     ),
+    children: [
+      { index: true, element: <Navigate to="dashboard" replace /> },
+      { path: 'dashboard', element: <StudentDashboard /> },
+      { path: 'problems', element: <StudentProblems /> },
+      { path: 'submission', element: <StudentSubmission /> },
+      { path: 'team', element: <StudentTeam /> },
+      { path: 'documents', element: <StudentDocuments /> },
+    ],
+  },
+  {
+    path: '/team-details',
+    element: <Navigate to="/student/team" replace />,
   },
   {
     path: '/admin',
@@ -89,7 +95,6 @@ const router = createBrowserRouter([
       { path: 'submissions', element: <AdminSubmissions /> },
       { path: 'analytics', element: <AdminAnalytics /> },
       { path: 'settings', element: <AdminSettings /> },
-      { path: 'debugger', element: <AdminDebugger /> },
     ],
   },
   { path: '*', element: <NotFoundPage /> },

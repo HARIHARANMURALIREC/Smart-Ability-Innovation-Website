@@ -21,6 +21,7 @@ export interface Team {
   membersComplete: boolean;   // true once leader has filled all member details
   selectedProjectId?: string; // project selected by team leader
   pdfName: string | null;
+  pdfUrl: string | null;
   submissionStatus: SubmissionStatus;
   submissionDate: string | null;
   createdAt: string;

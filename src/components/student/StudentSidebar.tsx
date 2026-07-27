@@ -3,10 +3,10 @@ import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   LayoutDashboard,
+  Lightbulb,
+  Upload,
   Users,
-  FileCheck2,
-  BarChart3,
-  Settings,
+  FileText,
   LogOut,
   Menu,
   X,
@@ -17,14 +17,14 @@ import ThemeToggle from '@/components/ui/ThemeToggle';
 import Logo from '@/components/ui/Logo';
 
 const NAV = [
-  { to: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { to: '/admin/teams', label: 'Registered Teams', icon: Users },
-  { to: '/admin/submissions', label: 'Submissions', icon: FileCheck2 },
-  { to: '/admin/analytics', label: 'Analytics', icon: BarChart3 },
-  { to: '/admin/settings', label: 'Settings', icon: Settings },
+  { to: '/student/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { to: '/student/problems', label: 'Problem Statements', icon: Lightbulb },
+  { to: '/student/submission', label: 'PDF Submission', icon: Upload },
+  { to: '/student/team', label: 'My Team', icon: Users },
+  { to: '/student/documents', label: 'Documents', icon: FileText },
 ];
 
-export default function AdminSidebar() {
+export default function StudentSidebar() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -45,7 +45,7 @@ export default function AdminSidebar() {
         }`}
       >
         <Link
-          to="/admin/dashboard"
+          to="/student/dashboard"
           className={`flex min-w-0 items-center gap-2 ${opts.expanded ? '' : 'justify-center'}`}
           title="Smart Ability"
         >
@@ -93,11 +93,13 @@ export default function AdminSidebar() {
             opts.expanded ? '' : 'justify-center'
           }`}
         >
-          <Avatar name={user?.name ?? 'Admin'} size="sm" />
+          <Avatar name={user?.name ?? 'Student'} size="sm" />
           {opts.expanded && (
             <div className="min-w-0">
               <p className="truncate text-sm font-semibold text-slate-900 dark:text-white">{user?.name}</p>
-              <p className="truncate text-xs text-slate-500 dark:text-slate-400">Administrator</p>
+              <p className="truncate text-xs text-slate-500 dark:text-slate-400">
+                {user?.isLeader ? 'Team Leader' : 'Team Member'}
+              </p>
             </div>
           )}
         </div>
@@ -118,7 +120,7 @@ export default function AdminSidebar() {
   return (
     <>
       <div className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-slate-200/60 bg-white/80 px-4 backdrop-blur-xl dark:border-slate-800/60 dark:bg-black/90 lg:hidden">
-        <Link to="/admin/dashboard" className="flex items-center gap-2">
+        <Link to="/student/dashboard" className="flex items-center gap-2">
           <Logo size={34} />
         </Link>
         <div className="flex items-center gap-2">

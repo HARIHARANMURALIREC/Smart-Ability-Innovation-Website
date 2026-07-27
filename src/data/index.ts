@@ -2,49 +2,6 @@ import type { ActivityItem, AppNotification } from '@/types';
 
 // Static content for the landing page ----------------------------------
 
-export const FEATURES = [
-  {
-    icon: 'Brain',
-    title: 'AI Software Track',
-    description: 'Build AI-powered assistive applications — speech recognition, NLP, AAC tools, and intelligent systems using machine learning.',
-  },
-  {
-    icon: 'Cpu',
-    title: 'Hardware Track',
-    description: 'Design smart assistive devices — IoT communication aids, sensor-based systems, and embedded hardware prototypes.',
-  },
-  {
-    icon: 'Users',
-    title: 'Team Registration',
-    description: 'Register your squad of 4 members (including team leader) with a guided, validated multi-step form.',
-  },
-  {
-    icon: 'LayoutDashboard',
-    title: 'Student Dashboard',
-    description: 'Track your team, members, progress, and submission status in one elegant view.',
-  },
-  {
-    icon: 'ShieldCheck',
-    title: 'Admin Dashboard',
-    description: 'Manage every registered team, review submissions, and view analytics at a glance.',
-  },
-  {
-    icon: 'FileUp',
-    title: 'PDF Submission',
-    description: 'Only the team leader uploads the final project PDF — secure and permission-controlled.',
-  },
-  {
-    icon: 'Activity',
-    title: 'Submission Tracking',
-    description: 'Real-time submission status, progress bars, and recent activity for every team.',
-  },
-  {
-    icon: 'BellRing',
-    title: 'Notifications',
-    description: 'Stay updated with in-app notifications for registrations, submissions, and deadlines.',
-  },
-] as const;
-
 export const TIMELINE = [
   {
     step: '01',

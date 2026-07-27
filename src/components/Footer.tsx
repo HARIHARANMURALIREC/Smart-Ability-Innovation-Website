@@ -11,7 +11,10 @@ export default function Footer() {
           {/* Brand */}
           <div className="lg:col-span-1">
             <Link to="/" className="flex items-center gap-2">
-              <Logo size={44} />
+              <Logo size={40} />
+              <span className="font-display text-base font-bold text-slate-900 dark:text-white">
+                Smart<span className="gradient-text">Ability</span>
+              </span>
             </Link>
             <p className="mt-4 max-w-xs text-sm text-slate-500 dark:text-slate-400">
               An Innovation Challenge on Assistive Technology — building AI software and hardware solutions for persons with speech, hearing and communication disabilities.
@@ -63,10 +66,11 @@ export default function Footer() {
 
         </div>
 
-        <div className="mt-10 flex flex-col items-center justify-between gap-4 border-t border-slate-200/60 pt-6 text-sm text-slate-500 dark:border-slate-800/60 dark:text-slate-400 sm:flex-row">
-          <p>© {new Date().getFullYear()} Smart Ability Innovation. All rights reserved.</p>
+        <div className="mt-10 flex justify-center border-t border-slate-200/60 pt-6 text-sm text-slate-500 dark:border-slate-800/60 dark:text-slate-400">
           <p className="flex items-center gap-1.5">
-            Built with <Heart className="h-3.5 w-3.5 fill-rose-500 text-rose-500" /> for innovators
+            Developed with
+            <Heart className="heart-multicolor h-4 w-4" fill="currentColor" stroke="currentColor" />
+            <span className="font-semibold text-slate-700 dark:text-slate-200">TEAM OG</span>
           </p>
         </div>
       </div>

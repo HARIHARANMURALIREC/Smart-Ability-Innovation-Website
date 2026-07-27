@@ -3,6 +3,7 @@ import { Crown, Mail, Building2, GraduationCap, Calendar, FileText, CheckCircle2
 import Modal from '@/components/ui/Modal';
 import Avatar from '@/components/ui/Avatar';
 import StatusBadge from '@/components/ui/StatusBadge';
+import SubmissionPdfActions from '@/components/admin/SubmissionPdfActions';
 import type { Team } from '@/types';
 import { teamMemberCount, statusLabel } from '@/utils';
 
@@ -37,7 +38,10 @@ export default function TeamDetailsModal({ open, onClose, team }: Props) {
             { icon: Calendar, label: 'Year', value: team.year },
             { icon: Mail, label: 'Mobile', value: team.mobile },
           ].map((d) => (
-            <div key={d.label} className="flex items-center gap-3 rounded-xl border border-slate-200/60 bg-white/40 p-3 dark:border-slate-700/60 dark:bg-slate-800/30">
+            <div
+              key={d.label}
+              className="flex items-center gap-3 rounded-xl border border-slate-200/60 bg-white/40 p-3 dark:border-slate-700/60 dark:bg-slate-800/30"
+            >
               <d.icon className="h-5 w-5 text-brand-600 dark:text-brand-300" />
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">{d.label}</p>
@@ -48,10 +52,18 @@ export default function TeamDetailsModal({ open, onClose, team }: Props) {
         </div>
 
         <div>
-          <h4 className="mb-2 text-sm font-bold text-slate-700 dark:text-slate-200">Team Members ({teamMemberCount(team)} total)</h4>
+          <h4 className="mb-2 text-sm font-bold text-slate-700 dark:text-slate-200">
+            Team Members ({teamMemberCount(team)} total)
+          </h4>
           <div className="space-y-2">
             {team.members.map((m, i) => (
-              <motion.div key={i} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }} className="flex items-center gap-3 rounded-xl border border-slate-200/60 bg-white/40 p-2.5 dark:border-slate-700/60 dark:bg-slate-800/30">
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: i * 0.05 }}
+                className="flex items-center gap-3 rounded-xl border border-slate-200/60 bg-white/40 p-2.5 dark:border-slate-700/60 dark:bg-slate-800/30"
+              >
                 <Avatar name={m.name} size="sm" />
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-semibold text-slate-900 dark:text-white">{m.name}</p>
@@ -60,7 +72,11 @@ export default function TeamDetailsModal({ open, onClose, team }: Props) {
                 <span className="text-xs text-slate-400">#{i + 2}</span>
               </motion.div>
             ))}
-            {team.members.length === 0 && <p className="rounded-lg bg-slate-50 p-3 text-center text-sm text-slate-400 dark:bg-slate-800/40">No additional members</p>}
+            {team.members.length === 0 && (
+              <p className="rounded-lg bg-slate-50 p-3 text-center text-sm text-slate-400 dark:bg-slate-800/40">
+                No additional members
+              </p>
+            )}
           </div>
         </div>
 
@@ -71,19 +87,34 @@ export default function TeamDetailsModal({ open, onClose, team }: Props) {
           </div>
           <div className="mt-3 grid gap-3 sm:grid-cols-2">
             <div className="flex items-center gap-2">
-              <FileText className="h-5 w-5 text-brand-600 dark:text-brand-300" />
-              <span className="text-sm text-slate-600 dark:text-slate-300">{team.pdfName ?? 'No file uploaded'}</span>
+              <FileText className="h-5 w-5 shrink-0 text-brand-600 dark:text-brand-300" />
+              <span className="text-sm text-slate-600 dark:text-slate-300">
+                {team.pdfName ?? 'No file uploaded'}
+              </span>
             </div>
             <div className="flex items-center gap-2">
               <CheckCircle2 className="h-5 w-5 text-brand-600 dark:text-brand-300" />
-              <span className="text-sm text-slate-600 dark:text-slate-300">{statusLabel(team.submissionStatus)}</span>
+              <span className="text-sm text-slate-600 dark:text-slate-300">
+                {statusLabel(team.submissionStatus)}
+              </span>
             </div>
             <div className="flex items-center gap-2 sm:col-span-2">
               <Calendar className="h-5 w-5 text-slate-400" />
               <span className="text-sm text-slate-600 dark:text-slate-300">
-                Submitted on: {team.submissionDate ? new Date(team.submissionDate).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' }) : '—'}
+                Submitted on:{' '}
+                {team.submissionDate
+                  ? new Date(team.submissionDate).toLocaleString('en-US', {
+                      dateStyle: 'medium',
+                      timeStyle: 'short',
+                    })
+                  : '—'}
               </span>
             </div>
+            {team.pdfUrl && (
+              <div className="sm:col-span-2">
+                <SubmissionPdfActions pdfUrl={team.pdfUrl} pdfName={team.pdfName} teamName={team.teamName} />
+              </div>
+            )}
           </div>
         </div>
       </div>

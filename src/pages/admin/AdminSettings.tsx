@@ -48,7 +48,8 @@ export default function AdminSettings() {
         breadcrumbs={[{ label: 'Admin', to: '/admin/dashboard' }, { label: 'Settings' }]}
       />
 
-      <div className="mx-auto max-w-4xl space-y-6 px-4 py-6 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-7xl space-y-6 px-4 py-6 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-4xl space-y-6">
         {/* Admin profile */}
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="glass-card p-6">
           <h3 className="mb-5 font-display text-base font-bold text-slate-900 dark:text-white">Admin Profile</h3>
@@ -122,6 +123,7 @@ export default function AdminSettings() {
         >
           <LogOut className="h-4 w-4" /> Logout from Admin
         </motion.button>
+        </div>
       </div>
     </div>
   );

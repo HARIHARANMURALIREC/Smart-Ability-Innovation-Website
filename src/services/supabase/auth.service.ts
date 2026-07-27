@@ -1,7 +1,10 @@
 /**
  * Supabase Authentication Service
- * Handles user authentication and session management
- * 
+ *
+ * NOTE: The app currently authenticates via AuthContext (teams table +
+ * hardcoded admin). These helpers are available if you migrate to
+ * Supabase Auth later — they are not used by login/register pages yet.
+ *
  * @module services/supabase/auth.service
  */
 

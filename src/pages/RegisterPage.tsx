@@ -15,7 +15,7 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-hero-mesh pt-24 pb-16">
+    <div className="relative min-h-screen overflow-hidden bg-hero-mesh pt-32 pb-16">
       <div className="pointer-events-none absolute -top-10 left-1/4 h-72 w-72 rounded-full bg-brand-500/15 blur-[120px]" />
       <div className="pointer-events-none absolute bottom-0 right-1/4 h-72 w-72 rounded-full bg-accent-500/15 blur-[120px]" />
 

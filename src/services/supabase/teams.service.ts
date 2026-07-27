@@ -41,6 +41,7 @@ export function normalizeTeam(row: Record<string, any>): Team {
     membersComplete: Boolean(row.membersComplete ?? row.memberscomplete ?? false),
     selectedProjectId: row.selectedProjectId ?? row.selectedprojectid ?? undefined,
     pdfName: row.pdfName ?? row.pdfname ?? null,
+    pdfUrl: row.pdfUrl ?? row.pdfurl ?? null,
     submissionStatus: status,
     submissionDate: row.submissionDate ?? row.submissiondate ?? null,
     createdAt: row.createdAt ?? row.createdat ?? new Date().toISOString(),
@@ -62,6 +63,7 @@ function toDbPayload(team: Team): Record<string, unknown> {
     members: team.members || [],
     memberscomplete: Boolean(team.membersComplete),
     pdfname: team.pdfName,
+    pdfurl: team.pdfUrl,
     submissionstatus: team.submissionStatus,
     submissiondate: team.submissionDate,
     selectedprojectid: team.selectedProjectId ?? null,
@@ -82,6 +84,7 @@ function toDbUpdates(updates: Partial<Team>): Record<string, unknown> {
   if (updates.members !== undefined) out.members = updates.members;
   if (updates.membersComplete !== undefined) out.memberscomplete = updates.membersComplete;
   if (updates.pdfName !== undefined) out.pdfname = updates.pdfName;
+  if (updates.pdfUrl !== undefined) out.pdfurl = updates.pdfUrl;
   if (updates.submissionStatus !== undefined) out.submissionstatus = updates.submissionStatus;
   if (updates.submissionDate !== undefined) out.submissiondate = updates.submissionDate;
   if (updates.selectedProjectId !== undefined) out.selectedprojectid = updates.selectedProjectId;
@@ -100,6 +103,12 @@ export async function createTeam(input: Team): Promise<{ team: Team | null; erro
     if (error && /password/i.test(error.message)) {
       const { password: _pw, ...withoutPassword } = payload;
       ({ data, error } = await supabase.from('teams').insert([withoutPassword]).select().single());
+    }
+
+    // Older schemas may lack pdfurl
+    if (error && /pdfurl|column|schema cache|42703/i.test(error.message) && 'pdfurl' in payload) {
+      const { pdfurl: _u, ...withoutUrl } = payload;
+      ({ data, error } = await supabase.from('teams').insert([withoutUrl]).select().single());
     }
 
     if (error) {
@@ -193,12 +202,14 @@ export async function updateTeam(
   updates: Partial<Team>
 ): Promise<{ team: Team | null; error: string | null }> {
   try {
-    const { data, error } = await supabase
-      .from('teams')
-      .update(toDbUpdates(updates))
-      .eq('id', teamId)
-      .select()
-      .single();
+    let payload = toDbUpdates(updates);
+    let { data, error } = await supabase.from('teams').update(payload).eq('id', teamId).select().single();
+
+    // Older DBs may not have pdfurl yet
+    if (error && /pdfurl|column|schema cache|42703/i.test(error.message) && 'pdfurl' in payload) {
+      const { pdfurl: _u, ...withoutUrl } = payload;
+      ({ data, error } = await supabase.from('teams').update(withoutUrl).eq('id', teamId).select().single());
+    }
 
     if (error) {
       return { team: null, error: error.message };
@@ -212,10 +223,14 @@ export async function updateTeam(
 }
 
 /**
- * Delete team
+ * Delete team and related rows
  */
 export async function deleteTeam(teamId: string): Promise<{ error: string | null }> {
   try {
+    // Clean related tables first (in case CASCADE is missing on older schemas)
+    await supabase.from('team_members').delete().eq('team_id', teamId);
+    await supabase.from('submissions').delete().eq('team_id', teamId);
+
     const { error } = await supabase.from('teams').delete().eq('id', teamId);
 
     if (error) {
@@ -230,20 +245,25 @@ export async function deleteTeam(teamId: string): Promise<{ error: string | null
 }
 
 /**
- * Update team project selection
+ * Update team project selection (does NOT mark PDF as submitted)
  */
 export async function selectProject(
   teamId: string,
   projectId: string,
-  _projectTitle: string,
-  _abstract: string
+  _projectTitle?: string,
+  _abstract?: string
 ): Promise<{ team: Team | null; error: string | null }> {
   try {
+    // Selecting a problem moves status to in_progress unless already submitted
+    const existing = await getTeamById(teamId);
+    const nextStatus =
+      existing.team?.submissionStatus === 'submitted' ? 'submitted' : 'in_progress';
+
     const { data, error } = await supabase
       .from('teams')
       .update({
         selectedprojectid: projectId,
-        submissionstatus: 'submitted',
+        submissionstatus: nextStatus,
       })
       .eq('id', teamId)
       .select()

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Trophy, UserPlus, Trash2, ArrowRight, ArrowLeft, CheckCircle2, GraduationCap, Mail, Lock, Phone, User as UserIcon } from 'lucide-react';
@@ -24,9 +24,14 @@ interface FormState {
 const STEPS = ['Team & Leader', 'Academic Details', 'Team Members'] as const;
 
 export default function TeamLeaderRegisterPage() {
-  const { registerTeam, teams } = useAuth();
+  const { registerTeam, teams, refreshTeams } = useAuth();
   const { success, error } = useToast();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    void refreshTeams();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const [step, setStep] = useState(0);
   const [form, setForm] = useState<FormState>({
@@ -136,7 +141,7 @@ export default function TeamLeaderRegisterPage() {
     const cleanMembers = form.members.filter((m) => m.name.trim() && m.email.trim() && m.department && m.year);
     setSubmitting(true);
     try {
-      const payload: Omit<Team, 'id' | 'pdfName' | 'submissionStatus' | 'submissionDate' | 'createdAt' | 'membersComplete' | 'selectedProjectId'> = {
+      const payload: Omit<Team, 'id' | 'pdfName' | 'pdfUrl' | 'submissionStatus' | 'submissionDate' | 'createdAt' | 'membersComplete' | 'selectedProjectId'> = {
         teamName: form.teamName.trim(),
         leaderName: form.leaderName.trim(),
         leaderEmail: form.leaderEmail.trim().toLowerCase(),
@@ -149,8 +154,9 @@ export default function TeamLeaderRegisterPage() {
       };
       const res = await registerTeam(payload);
       if (res.ok) {
-        success('Team registered!', `Welcome, ${form.teamName}. You can now log in.`);
-        navigate('/student-login');
+        success('Team registered!', `Welcome, ${form.teamName}. You're signed in.`);
+        const next = res.team?.membersComplete ? '/student/dashboard' : '/student/setup-members';
+        navigate(next, { replace: true });
       } else {
         const errorMsg = typeof res.message === 'string' ? res.message : 'Registration failed. Please try again.';
         error('Registration failed', errorMsg);
@@ -167,7 +173,7 @@ export default function TeamLeaderRegisterPage() {
   const fieldError = (key: string) => errors[key];
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-hero-mesh pt-24 pb-16">
+    <div className="relative min-h-screen overflow-hidden bg-hero-mesh pt-32 pb-16">
       <div className="pointer-events-none absolute -top-10 left-1/4 h-72 w-72 rounded-full bg-brand-500/15 blur-[120px]" />
       <div className="pointer-events-none absolute bottom-0 right-1/4 h-72 w-72 rounded-full bg-accent-500/15 blur-[120px]" />
 

@@ -5,7 +5,6 @@ import {
   Trophy, Calendar, MapPin, UserCheck, Heart,
 } from 'lucide-react';
 import Button from '@/components/ui/Button';
-import FeatureCards from '@/components/sections/FeatureCards';
 import Timeline from '@/components/sections/Timeline';
 
 const POINTS = [
@@ -37,7 +36,7 @@ const TEAM = [
 
 export default function AboutPage() {
   return (
-    <div className="pt-24">
+    <div className="pt-32">
 
       {/* Hero — Event Overview */}
       <section className="relative py-16">
@@ -256,7 +255,6 @@ export default function AboutPage() {
         </div>
       </section>
 
-      <FeatureCards />
       <Timeline />
 
       {/* CTA */}

@@ -47,7 +47,7 @@ export default function LoginPage({ mode }: LoginProps) {
   };
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-hero-mesh pt-24 pb-16">
+    <div className="relative min-h-screen overflow-hidden bg-hero-mesh pt-32 pb-16">
       <div className="pointer-events-none absolute -top-10 left-1/4 h-72 w-72 rounded-full bg-brand-500/15 blur-[120px]" />
       <div className="pointer-events-none absolute bottom-0 right-1/4 h-72 w-72 rounded-full bg-accent-500/15 blur-[120px]" />
 
@@ -55,7 +55,7 @@ export default function LoginPage({ mode }: LoginProps) {
         {/* Left brand panel */}
         <motion.div initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.5 }} className="hidden lg:block">
           <div className="flex items-center gap-2">
-            <Logo size={52} />
+            <Logo size={52} variant="full" />
           </div>
           <h1 className="mt-8 font-display text-4xl font-bold leading-tight text-slate-900 dark:text-white">
             {isStudent ? 'Welcome back, ' : 'Admin '}

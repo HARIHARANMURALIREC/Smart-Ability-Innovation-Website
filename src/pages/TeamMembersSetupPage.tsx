@@ -47,7 +47,19 @@ export default function TeamMembersSetupPage() {
   const validate = (): boolean => {
     const e: Record<string, string> = {};
     const emails = new Set<string>([team.leaderEmail.toLowerCase()]);
+    const filled = members.filter(
+      (m) => m.name.trim() || m.email.trim() || m.department || m.year,
+    );
+
+    if (filled.length === 0) {
+      error('Add a member', 'Fill in at least one teammate, or click Skip for now.');
+      return false;
+    }
+
     members.forEach((m, idx) => {
+      const hasAny = m.name.trim() || m.email.trim() || m.department || m.year;
+      if (!hasAny) return;
+
       if (!m.name.trim()) e[`${idx}-name`] = 'Name is required';
       if (!m.email.trim()) e[`${idx}-email`] = 'Email is required';
       else if (!isValidEmail(m.email)) e[`${idx}-email`] = 'Invalid email';
@@ -66,9 +78,13 @@ export default function TeamMembersSetupPage() {
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
     if (!validate()) return;
+    // Only persist fully completed teammate rows
+    const validMembers = members.filter(
+      (m) => m.name.trim() && m.email.trim() && m.department && m.year && isValidEmail(m.email),
+    );
     setSaving(true);
     setTimeout(() => {
-      updateTeamMembers(team.id, members);
+      updateTeamMembers(team.id, validMembers);
       setSaving(false);
       success('Team members saved!', 'Your team is all set. Welcome to the dashboard.');
       navigate('/student/dashboard');
@@ -76,7 +92,9 @@ export default function TeamMembersSetupPage() {
   };
 
   const handleSkip = () => {
-    updateTeamMembers(team.id, members.filter((m) => m.name.trim() && m.email.trim()));
+    // Skip must NOT register draft/incomplete teammates
+    updateTeamMembers(team.id, []);
+    success('Skipped for now', 'You can add teammates later from your team details if needed.');
     navigate('/student/dashboard');
   };
 
@@ -87,7 +105,12 @@ export default function TeamMembersSetupPage() {
       {/* Header */}
       <div className="relative z-10 border-b border-slate-200/60 bg-white/80 px-4 py-4 backdrop-blur-xl dark:border-slate-800/60 dark:bg-slate-900/80">
         <div className="mx-auto flex max-w-3xl items-center justify-between">
-          <Logo size={36} />
+          <div className="flex items-center gap-2">
+            <Logo size={36} />
+            <span className="font-display text-sm font-bold text-slate-900 dark:text-white">
+              Smart<span className="gradient-text">Ability</span>
+            </span>
+          </div>
           <span className="rounded-full bg-brand-100 px-3 py-1 text-xs font-bold text-brand-700 dark:bg-brand-900/30 dark:text-brand-300">
             Team Leader Setup
           </span>

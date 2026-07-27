@@ -1,9 +1,8 @@
 -- ==========================================================
 -- SMART ABILITY HACKATHON DATABASE
--- PART 1 - DATABASE TABLES
+-- Run in Supabase SQL Editor for a NEW project
+-- Columns are lowercase to match the frontend services
 -- ==========================================================
-
--- Remove old tables (safe for fresh setup)
 
 DROP TABLE IF EXISTS activity_logs CASCADE;
 DROP TABLE IF EXISTS submissions CASCADE;
@@ -12,64 +11,50 @@ DROP TABLE IF EXISTS projects CASCADE;
 DROP TABLE IF EXISTS teams CASCADE;
 
 -------------------------------------------------------------
--- TEAMS TABLE
+-- TEAMS
 -------------------------------------------------------------
 
 CREATE TABLE teams (
     id TEXT PRIMARY KEY,
-    teamName TEXT NOT NULL UNIQUE,
-    leaderName TEXT NOT NULL,
-    leaderEmail TEXT UNIQUE NOT NULL,
+    teamname TEXT NOT NULL UNIQUE,
+    leadername TEXT NOT NULL,
+    leaderemail TEXT UNIQUE NOT NULL,
     password TEXT NOT NULL,
     college TEXT NOT NULL,
     department TEXT NOT NULL,
     year TEXT NOT NULL,
     mobile TEXT,
-    members JSONB DEFAULT '[]',
-    membersComplete BOOLEAN DEFAULT FALSE,
-    selectedProjectId TEXT,
-    pdfName TEXT,
-    submissionStatus TEXT DEFAULT 'not_started',
-    submissionDate TIMESTAMP,
-    createdAt TIMESTAMP DEFAULT NOW(),
-    updatedAt TIMESTAMP DEFAULT NOW()
+    members JSONB DEFAULT '[]'::jsonb,
+    memberscomplete BOOLEAN DEFAULT FALSE,
+    -- Free-text id from frontend abstracts (ps_001…) — no FK
+    selectedprojectid TEXT,
+    pdfname TEXT,
+    pdfurl TEXT,
+    submissionstatus TEXT DEFAULT 'not_started',
+    submissiondate TIMESTAMP,
+    createdat TIMESTAMP DEFAULT NOW(),
+    updatedat TIMESTAMP DEFAULT NOW()
 );
-
--------------------------------------------------------------
--- TEAM MEMBERS TABLE
--------------------------------------------------------------
 
 CREATE TABLE team_members (
     id TEXT PRIMARY KEY,
-    team_id TEXT NOT NULL,
+    team_id TEXT NOT NULL REFERENCES teams(id) ON DELETE CASCADE,
     name TEXT NOT NULL,
     email TEXT UNIQUE NOT NULL,
     department TEXT NOT NULL,
     year TEXT NOT NULL,
-    status TEXT DEFAULT 'pending',
+    status TEXT DEFAULT 'accepted',
     joined_at TIMESTAMP,
-    createdAt TIMESTAMP DEFAULT NOW(),
-    CONSTRAINT fk_team_member
-    FOREIGN KEY(team_id)
-    REFERENCES teams(id)
-    ON DELETE CASCADE
+    createdat TIMESTAMP DEFAULT NOW()
 );
 
--------------------------------------------------------------
--- INDEXES FOR TEAMS & MEMBERS
--------------------------------------------------------------
-
-CREATE INDEX idx_team_email ON teams(leaderEmail);
-CREATE INDEX idx_team_name ON teams(teamName);
+CREATE INDEX idx_team_email ON teams(leaderemail);
+CREATE INDEX idx_team_name ON teams(teamname);
 CREATE INDEX idx_member_team ON team_members(team_id);
 CREATE INDEX idx_member_email ON team_members(email);
 
--- ==========================================================
--- PART 2 - PROJECTS & SUBMISSIONS
--- ==========================================================
-
 -------------------------------------------------------------
--- PROJECTS TABLE
+-- PROJECTS & SUBMISSIONS
 -------------------------------------------------------------
 
 CREATE TABLE projects (
@@ -80,60 +65,29 @@ CREATE TABLE projects (
     difficulty TEXT DEFAULT 'beginner',
     domain TEXT,
     technology TEXT,
-    createdAt TIMESTAMP DEFAULT NOW(),
-    updatedAt TIMESTAMP DEFAULT NOW()
+    createdat TIMESTAMP DEFAULT NOW(),
+    updatedat TIMESTAMP DEFAULT NOW()
 );
-
--------------------------------------------------------------
--- SUBMISSIONS TABLE
--------------------------------------------------------------
 
 CREATE TABLE submissions (
     id TEXT PRIMARY KEY,
-    team_id TEXT NOT NULL,
+    team_id TEXT NOT NULL REFERENCES teams(id) ON DELETE CASCADE,
     project_id TEXT,
-    pdfName TEXT,
-    fileUrl TEXT,
+    pdfname TEXT,
+    fileurl TEXT,
     status TEXT DEFAULT 'draft',
     score NUMERIC(5,2),
     feedback TEXT,
-    submittedAt TIMESTAMP,
-    evaluatedAt TIMESTAMP,
-    createdAt TIMESTAMP DEFAULT NOW(),
-    updatedAt TIMESTAMP DEFAULT NOW(),
-    CONSTRAINT fk_submission_team
-        FOREIGN KEY(team_id)
-        REFERENCES teams(id)
-        ON DELETE CASCADE,
-    CONSTRAINT fk_submission_project
-        FOREIGN KEY(project_id)
-        REFERENCES projects(id)
-        ON DELETE SET NULL
+    submittedat TIMESTAMP,
+    evaluatedat TIMESTAMP,
+    createdat TIMESTAMP DEFAULT NOW(),
+    updatedat TIMESTAMP DEFAULT NOW()
 );
-
--------------------------------------------------------------
--- LINK TEAM → PROJECT
--------------------------------------------------------------
-
-ALTER TABLE teams
-ADD CONSTRAINT fk_selected_project
-FOREIGN KEY(selectedProjectId)
-REFERENCES projects(id)
-ON DELETE SET NULL;
-
--------------------------------------------------------------
--- INDEXES FOR PROJECTS & SUBMISSIONS
--------------------------------------------------------------
 
 CREATE INDEX idx_project_title ON projects(title);
 CREATE INDEX idx_project_difficulty ON projects(difficulty);
 CREATE INDEX idx_submission_team ON submissions(team_id);
-CREATE INDEX idx_submission_project ON submissions(project_id);
 CREATE INDEX idx_submission_status ON submissions(status);
-
--- ==========================================================
--- PART 3 - ACTIVITY LOGS & TRIGGERS
--- ==========================================================
 
 -------------------------------------------------------------
 -- ACTIVITY LOGS
@@ -144,66 +98,41 @@ CREATE TABLE activity_logs (
     action TEXT NOT NULL,
     description TEXT,
     metadata JSONB DEFAULT '{}'::jsonb,
-    createdAt TIMESTAMP DEFAULT NOW()
+    createdat TIMESTAMP DEFAULT NOW()
 );
 
--------------------------------------------------------------
--- INDEXES FOR ACTIVITY LOGS
--------------------------------------------------------------
-
 CREATE INDEX idx_activity_action ON activity_logs(action);
-CREATE INDEX idx_activity_created ON activity_logs(createdAt);
+CREATE INDEX idx_activity_created ON activity_logs(createdat);
 
 -------------------------------------------------------------
--- AUTOMATIC updatedAt TRIGGER
+-- updatedat TRIGGER
 -------------------------------------------------------------
 
-CREATE OR REPLACE FUNCTION update_updatedAt_column()
+CREATE OR REPLACE FUNCTION update_updatedat_column()
 RETURNS TRIGGER AS
 $$
 BEGIN
-    NEW.updatedAt = NOW();
+    NEW.updatedat = NOW();
     RETURN NEW;
 END;
 $$
 LANGUAGE plpgsql;
 
--------------------------------------------------------------
--- TEAMS TRIGGER
--------------------------------------------------------------
-
 CREATE TRIGGER trigger_update_teams
-BEFORE UPDATE
-ON teams
-FOR EACH ROW
-EXECUTE FUNCTION update_updatedAt_column();
-
--------------------------------------------------------------
--- PROJECTS TRIGGER
--------------------------------------------------------------
+BEFORE UPDATE ON teams
+FOR EACH ROW EXECUTE FUNCTION update_updatedat_column();
 
 CREATE TRIGGER trigger_update_projects
-BEFORE UPDATE
-ON projects
-FOR EACH ROW
-EXECUTE FUNCTION update_updatedAt_column();
-
--------------------------------------------------------------
--- SUBMISSIONS TRIGGER
--------------------------------------------------------------
+BEFORE UPDATE ON projects
+FOR EACH ROW EXECUTE FUNCTION update_updatedat_column();
 
 CREATE TRIGGER trigger_update_submissions
-BEFORE UPDATE
-ON submissions
-FOR EACH ROW
-EXECUTE FUNCTION update_updatedAt_column();
-
--- ==========================================================
--- PART 4 - RLS & POLICIES
--- ==========================================================
+BEFORE UPDATE ON submissions
+FOR EACH ROW EXECUTE FUNCTION update_updatedat_column();
 
 -------------------------------------------------------------
--- ENABLE ROW LEVEL SECURITY
+-- RLS (open for current frontend + anon key architecture)
+-- Tighten before storing sensitive production data
 -------------------------------------------------------------
 
 ALTER TABLE teams ENABLE ROW LEVEL SECURITY;
@@ -212,56 +141,23 @@ ALTER TABLE projects ENABLE ROW LEVEL SECURITY;
 ALTER TABLE submissions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE activity_logs ENABLE ROW LEVEL SECURITY;
 
--------------------------------------------------------------
--- DROP OLD POLICIES (SAFE TO RE-RUN)
--------------------------------------------------------------
-
 DROP POLICY IF EXISTS "Allow all teams" ON teams;
 DROP POLICY IF EXISTS "Allow all members" ON team_members;
 DROP POLICY IF EXISTS "Allow all projects" ON projects;
 DROP POLICY IF EXISTS "Allow all submissions" ON submissions;
 DROP POLICY IF EXISTS "Allow all activity_logs" ON activity_logs;
 
+CREATE POLICY "Allow all teams" ON teams FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow all members" ON team_members FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow all projects" ON projects FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow all submissions" ON submissions FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow all activity_logs" ON activity_logs FOR ALL USING (true) WITH CHECK (true);
+
 -------------------------------------------------------------
--- DEVELOPMENT POLICIES
+-- SAMPLE PROJECTS
 -------------------------------------------------------------
 
-CREATE POLICY "Allow all teams"
-ON teams
-FOR ALL
-USING (true)
-WITH CHECK (true);
-
-CREATE POLICY "Allow all members"
-ON team_members
-FOR ALL
-USING (true)
-WITH CHECK (true);
-
-CREATE POLICY "Allow all projects"
-ON projects
-FOR ALL
-USING (true)
-WITH CHECK (true);
-
-CREATE POLICY "Allow all submissions"
-ON submissions
-FOR ALL
-USING (true)
-WITH CHECK (true);
-
-CREATE POLICY "Allow all activity_logs"
-ON activity_logs
-FOR ALL
-USING (true)
-WITH CHECK (true);
-
--- ==========================================================
--- PART 5 - SAMPLE PROJECTS (OPTIONAL)
--- ==========================================================
-
-INSERT INTO projects
-(id, title, abstract, problem_statement, difficulty, domain, technology)
+INSERT INTO projects (id, title, abstract, problem_statement, difficulty, domain, technology)
 VALUES
 (
     'P001',
@@ -293,13 +189,11 @@ VALUES
 ON CONFLICT (id) DO NOTHING;
 
 -- ==========================================================
--- DATABASE SETUP COMPLETE
+-- If upgrading an EXISTING database that still has the
+-- selectedprojectid → projects FK (breaks ps_001 ids), run:
+--
+--   ALTER TABLE teams DROP CONSTRAINT IF EXISTS fk_selected_project;
+--
+-- For PDF upload / admin view+download, run separately:
+--   STORAGE_SETUP.sql
 -- ==========================================================
-
--- Summary:
--- ✅ 5 Tables Created (teams, team_members, projects, submissions, activity_logs)
--- ✅ Foreign Keys Configured
--- ✅ Indexes Created for Performance
--- ✅ Triggers Setup for updatedAt
--- ✅ RLS Policies Enabled
--- ✅ Sample Projects Inserted

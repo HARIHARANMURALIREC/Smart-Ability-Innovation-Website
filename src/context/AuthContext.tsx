@@ -12,14 +12,17 @@ import {
   uid,
 } from '@/utils';
 import { seedTeams } from '@/data/seed';
-import { supabase } from '@/config/supabase';
 import {
   createTeam,
   getAllTeams,
   deleteTeam as deleteTeamRemote,
   updateTeam as updateTeamRemote,
+  selectProject as selectProjectRemote,
 } from '@/services/supabase/teams.service';
+import { addTeamMember } from '@/services/supabase/members.service';
+import { createSubmission } from '@/services/supabase/submissions.service';
 import { logActivity } from '@/services/supabase/logging.service';
+import { uploadTeamPdf } from '@/services/supabase/storage.service';
 
 const logger = {
   info: (msg: string, data?: any) => {
@@ -49,6 +52,7 @@ interface AuthContextValue {
       Team,
       | 'id'
       | 'pdfName'
+      | 'pdfUrl'
       | 'submissionStatus'
       | 'submissionDate'
       | 'createdAt'
@@ -59,9 +63,9 @@ interface AuthContextValue {
   registerMemberToTeam: (teamId: string, member: TeamMember) => void;
   updateTeamMembers: (teamId: string, members: Team['members']) => void;
   selectProject: (teamId: string, projectId: string) => void;
-  uploadPdf: (fileName: string) => void;
+  uploadPdf: (file: File) => Promise<{ ok: boolean; message: string }>;
   logout: () => void;
-  deleteTeam: (teamId: string) => void;
+  deleteTeam: (teamId: string) => Promise<{ ok: boolean; message: string }>;
   refreshTeams: () => Promise<void>;
   /** Merge previously registered local/imported teams into admin list and push to DB */
   recoverTeams: (incoming: Team[]) => Promise<{ ok: boolean; message: string; recovered: number }>;
@@ -129,11 +133,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setTeams(local);
         return;
       }
-      // Never wipe older local registrations when remote is empty/partial
-      const merged = mergeTeams(local, remote || []);
-      logger.info(`Loaded teams (local=${local.length}, remote=${remote?.length ?? 0}, merged=${merged.length})`);
-      setTeams(merged);
-      saveTeams(merged);
+      // Database is source of truth so deleted teams (and their emails) stay free
+      const next = remote || [];
+      logger.info(`Loaded ${next.length} teams from Supabase`);
+      setTeams(next);
+      saveTeams(next);
     } catch (err) {
       logger.error('refreshTeams failed', err);
       setTeams(loadTeams());
@@ -157,6 +161,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           members: Array.isArray(t.members) ? t.members : [],
           membersComplete: Boolean(t.membersComplete),
           pdfName: t.pdfName ?? null,
+          pdfUrl: t.pdfUrl ?? null,
           submissionStatus: t.submissionStatus || 'not_started',
           submissionDate: t.submissionDate ?? null,
           createdAt: t.createdAt || new Date().toISOString(),
@@ -248,9 +253,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return { ok: false, message: 'Missing required fields' };
       }
 
-      // Prefer remote list for duplicate checks when available
-      const { teams: remote } = await getAllTeams();
-      const source = remote && remote.length > 0 ? remote : teams;
+      // Prefer database list for duplicate checks (deleted teams must not block re-register)
+      const { teams: remote, error: remoteError } = await getAllTeams();
+      const source = !remoteError && remote ? remote : teams;
 
       const exists = source.some(
         (t) => t.teamName.trim().toLowerCase() === data.teamName.trim().toLowerCase(),
@@ -266,10 +271,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return { ok: false, message: 'This leader email is already registered.' };
       }
 
+      const memberEmailTaken = (data.members || []).some((m) =>
+        source.some(
+          (t) =>
+            t.leaderEmail.trim().toLowerCase() === m.email.trim().toLowerCase() ||
+            t.members.some((tm) => tm.email.trim().toLowerCase() === m.email.trim().toLowerCase()),
+        ),
+      );
+      if (memberEmailTaken) {
+        return { ok: false, message: 'A team member email is already registered.' };
+      }
+
       const localTeam: Team = {
         ...data,
         id: uid('team'),
         pdfName: null,
+        pdfUrl: null,
         membersComplete: (data.members?.length ?? 0) > 0,
         submissionStatus: 'not_started',
         submissionDate: null,
@@ -279,9 +296,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const { team: saved, error } = await createTeam(localTeam);
       if (error) {
         logger.error('Supabase insert failed:', error);
-        // Keep local so student can still use the app on this browser,
-        // but warn that admin sync failed
-        setTeams((prev) => [localTeam, ...prev.filter((t) => t.id !== localTeam.id)]);
         return {
           ok: false,
           message: `Could not save team to database: ${error}. Please try again or contact admin.`,
@@ -289,10 +303,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       const finalTeam = saved ?? localTeam;
+      // Keep password from the registration payload (DB row may omit it on select)
+      if (!finalTeam.password) finalTeam.password = localTeam.password;
+
       setTeams((prev) => [finalTeam, ...prev.filter((t) => t.id !== finalTeam.id)]);
       logger.info('Team registered and synced to Supabase:', finalTeam.id);
 
-      // Refresh full list so admin/other tabs stay consistent
+      // Auto-login team leader so they don't have to sign in again
+      const authUser: AuthUser = {
+        role: 'student',
+        email: finalTeam.leaderEmail,
+        name: finalTeam.leaderName,
+        teamId: finalTeam.id,
+        isLeader: true,
+      };
+      setUser(authUser);
+      saveUser(authUser);
+
+      void logActivity({
+        action: 'team_registered',
+        description: `Team ${finalTeam.teamName} registered`,
+        userEmail: finalTeam.leaderEmail,
+        metadata: { teamId: finalTeam.id, teamName: finalTeam.teamName },
+      });
+
+      // Sync any members listed at registration into team_members
+      for (const member of finalTeam.members || []) {
+        void addTeamMember({ teamId: finalTeam.id, member });
+      }
+
+      // Don't await — avoid wiping the just-created session with a slow refetch race
       void refreshTeams();
 
       return { ok: true, message: 'Team registered successfully!', team: finalTeam };
@@ -312,9 +352,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const selectProject: AuthContextValue['selectProject'] = (teamId, projectId) => {
     setTeams((prev) =>
-      prev.map((t) => (t.id === teamId ? { ...t, selectedProjectId: projectId } : t)),
+      prev.map((t) =>
+        t.id === teamId
+          ? {
+              ...t,
+              selectedProjectId: projectId,
+              submissionStatus: t.submissionStatus === 'submitted' ? 'submitted' : 'in_progress',
+            }
+          : t,
+      ),
     );
-    void updateTeamRemote(teamId, { selectedProjectId: projectId });
+    void selectProjectRemote(teamId, projectId);
   };
 
   const registerMemberToTeam: AuthContextValue['registerMemberToTeam'] = (teamId, member) => {
@@ -324,43 +372,51 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setTeams((prev) =>
         prev.map((t) => {
           if (t.id !== teamId) return t;
-          const next = { ...t, members: [...t.members, member], membersComplete: true };
-          void updateTeamRemote(teamId, { members: next.members, membersComplete: true });
-          return next;
+          const nextMembers = [...t.members, member];
+          void updateTeamRemote(teamId, { members: nextMembers, membersComplete: true });
+          return { ...t, members: nextMembers, membersComplete: true };
         }),
       );
 
-      supabase
-        .from('team_members')
-        .insert([
-          {
-            id: uid('member'),
-            team_id: teamId,
-            name: member.name,
-            email: member.email,
-            department: member.department,
-            year: String(member.year),
-          },
-        ])
-        .then(({ error }) => {
-          if (error) logger.error('Failed to save member to team_members table:', error);
-        });
+      void addTeamMember({ teamId, member }).then(({ error }) => {
+        if (error) logger.error('Failed to save member to team_members table:', error);
+        else logger.info('Member saved to team_members:', member.email);
+      });
     } catch (error) {
       logger.error('registerMemberToTeam error:', error);
     }
   };
 
-  const uploadPdf: AuthContextValue['uploadPdf'] = (fileName) => {
-    if (!user || user.role !== 'student' || !user.teamId) return;
+  const uploadPdf: AuthContextValue['uploadPdf'] = async (file) => {
+    if (!user || user.role !== 'student' || !user.teamId) {
+      return { ok: false, message: 'Not authorized to upload.' };
+    }
 
     try {
+      const team = teams.find((t) => t.id === user.teamId);
+      if (!team?.selectedProjectId) {
+        return { ok: false, message: 'Select a problem statement before uploading.' };
+      }
+
+      const { publicUrl, error: uploadError } = await uploadTeamPdf(user.teamId, file);
+      if (uploadError || !publicUrl) {
+        logger.error('PDF storage upload failed:', uploadError);
+        return {
+          ok: false,
+          message: uploadError || 'Could not upload PDF. Create the submissions storage bucket in Supabase.',
+        };
+      }
+
       const submissionDate = new Date().toISOString();
+      const fileName = file.name;
+
       setTeams((prev) =>
         prev.map((t) =>
           t.id === user.teamId
             ? {
                 ...t,
                 pdfName: fileName,
+                pdfUrl: publicUrl,
                 submissionStatus: 'submitted',
                 submissionDate,
               }
@@ -370,17 +426,58 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       void updateTeamRemote(user.teamId, {
         pdfName: fileName,
+        pdfUrl: publicUrl,
         submissionStatus: 'submitted',
         submissionDate,
       });
+
+      void createSubmission({
+        teamId: user.teamId,
+        projectId: team.selectedProjectId,
+        pdfName: fileName,
+        fileUrl: publicUrl,
+        status: 'submitted',
+      }).then(({ error }) => {
+        if (error) logger.error('Failed to create submissions row:', error);
+      });
+
+      void logActivity({
+        action: 'pdf_uploaded',
+        description: `PDF uploaded: ${fileName}`,
+        userEmail: user.email,
+        metadata: { teamId: user.teamId, fileName, pdfUrl: publicUrl, projectId: team.selectedProjectId },
+      });
+
+      return { ok: true, message: 'PDF uploaded successfully.' };
     } catch (error) {
       logger.error('uploadPdf error:', error);
+      return { ok: false, message: error instanceof Error ? error.message : 'Upload failed.' };
     }
   };
 
-  const deleteTeam: AuthContextValue['deleteTeam'] = (teamId) => {
-    setTeams((prev) => prev.filter((t) => t.id !== teamId));
-    void deleteTeamRemote(teamId);
+  const deleteTeam: AuthContextValue['deleteTeam'] = async (teamId) => {
+    const { error } = await deleteTeamRemote(teamId);
+    if (error) {
+      logger.error('Failed to delete team from Supabase:', error);
+      return { ok: false, message: error };
+    }
+
+    setTeams((prev) => {
+      const next = prev.filter((t) => t.id !== teamId);
+      saveTeams(next);
+      return next;
+    });
+
+    // If a student session belonged to the deleted team, clear it
+    setUser((prev) => {
+      if (prev?.teamId === teamId) {
+        clearUser();
+        return null;
+      }
+      return prev;
+    });
+
+    return { ok: true, message: 'Team deleted' };
   };
 
   const logout = () => {

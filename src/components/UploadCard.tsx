@@ -1,11 +1,10 @@
 import { useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FileUp, FileText, CheckCircle2, UploadCloud, AlertCircle, Lock } from 'lucide-react';
+import { FileUp, FileText, CheckCircle2, UploadCloud, AlertCircle, Lock, Download, Eye } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/context/ToastContext';
 import StatusBadge from '@/components/ui/StatusBadge';
 
-// Maximum file size: 500KB
 const MAX_FILE_SIZE_BYTES = 500 * 1024; // 500 KB
 const MAX_FILE_SIZE_MB = (MAX_FILE_SIZE_BYTES / (1024 * 1024)).toFixed(1);
 
@@ -13,75 +12,86 @@ export default function UploadCard() {
   const { user, teams, uploadPdf } = useAuth();
   const { success, error } = useToast();
   const fileRef = useRef<HTMLInputElement>(null);
-  const [fileName, setFileName] = useState('');
-  const [fileSize, setFileSize] = useState(0);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
 
   const team = teams.find((t) => t.id === user?.teamId);
   if (!team) return null;
 
   const isLeader = user?.isLeader;
+  const hasSelectedProject = Boolean(team.selectedProjectId);
 
   const formatFileSize = (bytes: number): string => {
     if (bytes === 0) return '0 Bytes';
     const k = 1024;
     const sizes = ['Bytes', 'KB', 'MB'];
-    const i = Math.floor(Math.log(bytes, k));
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
     return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!hasSelectedProject) {
+      error('Select a project first', 'Choose a problem statement before uploading your PDF.');
+      e.target.value = '';
+      return;
+    }
+
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Check file type
     if (file.type !== 'application/pdf') {
       error('Invalid file type', 'Only PDF files are accepted.');
       e.target.value = '';
-      setFileName('');
-      setFileSize(0);
+      setSelectedFile(null);
       return;
     }
 
-    // Check file size
     if (file.size > MAX_FILE_SIZE_BYTES) {
       error(
         'File too large',
-        `Maximum file size is ${MAX_FILE_SIZE_MB} MB. Your file is ${formatFileSize(file.size)}.`
+        `Maximum file size is ${MAX_FILE_SIZE_MB} MB. Your file is ${formatFileSize(file.size)}.`,
       );
       e.target.value = '';
-      setFileName('');
-      setFileSize(0);
+      setSelectedFile(null);
       return;
     }
 
-    setFileName(file.name);
-    setFileSize(file.size);
+    setSelectedFile(file);
   };
 
-  const handleUpload = () => {
-    if (!fileName) {
+  const handleUpload = async () => {
+    if (!hasSelectedProject) {
+      error('Select a project first', 'Choose a problem statement before uploading your PDF.');
+      return;
+    }
+
+    if (!selectedFile) {
       error('No file selected', 'Please choose a PDF file first.');
       return;
     }
 
-    if (fileSize > MAX_FILE_SIZE_BYTES) {
+    if (selectedFile.size > MAX_FILE_SIZE_BYTES) {
       error(
         'File too large',
-        `Maximum file size is ${MAX_FILE_SIZE_MB} MB. Your file is ${formatFileSize(fileSize)}.`
+        `Maximum file size is ${MAX_FILE_SIZE_MB} MB. Your file is ${formatFileSize(selectedFile.size)}.`,
       );
       return;
     }
 
     setUploading(true);
-    setTimeout(() => {
-      uploadPdf(fileName);
-      setUploading(false);
-      success('Submission completed!', `${fileName} has been uploaded successfully.`);
-    }, 1300);
+    const result = await uploadPdf(selectedFile);
+    setUploading(false);
+
+    if (!result.ok) {
+      error('Upload failed', result.message);
+      return;
+    }
+
+    setSelectedFile(null);
+    if (fileRef.current) fileRef.current.value = '';
+    success('Submission completed!', `${selectedFile.name} has been uploaded successfully.`);
   };
 
-  // Member view — read-only
   if (!isLeader) {
     return (
       <div className="glass-card p-6">
@@ -112,7 +122,6 @@ export default function UploadCard() {
     );
   }
 
-  // Leader view — full upload controls
   return (
     <div className="glass-card p-6">
       <div className="flex items-center gap-3">
@@ -126,16 +135,51 @@ export default function UploadCard() {
       </div>
 
       {team.submissionStatus === 'submitted' && team.pdfName ? (
-        <motion.div initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} className="mt-4 rounded-xl border border-emerald-200/60 bg-emerald-50/60 p-4 dark:border-emerald-500/20 dark:bg-emerald-500/10">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.96 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="mt-4 rounded-xl border border-emerald-200/60 bg-emerald-50/60 p-4 dark:border-emerald-500/20 dark:bg-emerald-500/10"
+        >
           <div className="flex items-center gap-3">
             <CheckCircle2 className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
-            <div className="flex-1">
+            <div className="min-w-0 flex-1">
               <p className="text-sm font-bold text-emerald-800 dark:text-emerald-200">Submission Completed</p>
-              <p className="text-xs text-emerald-700 dark:text-emerald-300">{team.pdfName}</p>
+              <p className="truncate text-xs text-emerald-700 dark:text-emerald-300">{team.pdfName}</p>
             </div>
             <StatusBadge status="submitted" size="sm" />
           </div>
+          {team.pdfUrl && (
+            <div className="mt-3 flex gap-2">
+              <a
+                href={team.pdfUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="btn-secondary flex-1 justify-center text-xs"
+              >
+                <Eye className="h-3.5 w-3.5" /> View
+              </a>
+              <a
+                href={team.pdfUrl}
+                download={team.pdfName}
+                target="_blank"
+                rel="noreferrer"
+                className="btn-secondary flex-1 justify-center text-xs"
+              >
+                <Download className="h-3.5 w-3.5" /> Download
+              </a>
+            </div>
+          )}
         </motion.div>
+      ) : !hasSelectedProject ? (
+        <div className="mt-4 rounded-xl border border-amber-200/60 bg-amber-50/70 p-4 text-center dark:border-amber-500/20 dark:bg-amber-500/10">
+          <Lock className="mx-auto h-6 w-6 text-amber-600 dark:text-amber-400" />
+          <p className="mt-2 text-sm font-semibold text-amber-900 dark:text-amber-200">
+            Select a problem statement first
+          </p>
+          <p className="mt-1 text-xs text-amber-800/80 dark:text-amber-300/80">
+            Go to Problem Statements, select a project, then upload your PDF abstract.
+          </p>
+        </div>
       ) : (
         <div className="mt-4 space-y-4">
           <div
@@ -145,33 +189,44 @@ export default function UploadCard() {
             <input ref={fileRef} type="file" accept="application/pdf" className="hidden" onChange={handleFileChange} />
             <UploadCloud className="mx-auto h-9 w-9 text-slate-400 transition-colors group-hover:text-brand-500" />
             <p className="mt-2 text-sm font-semibold text-slate-700 dark:text-slate-200">
-              {fileName ? fileName : 'Choose File'}
+              {selectedFile ? selectedFile.name : 'Choose File'}
             </p>
             <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">PDF files only (max {MAX_FILE_SIZE_MB} MB)</p>
           </div>
 
           <AnimatePresence>
-            {fileName && (
-              <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="flex items-center gap-2 rounded-xl border border-slate-200/60 bg-white/50 p-3 dark:border-slate-700/60 dark:bg-slate-800/30">
+            {selectedFile && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="flex items-center gap-2 rounded-xl border border-slate-200/60 bg-white/50 p-3 dark:border-slate-700/60 dark:bg-slate-800/30"
+              >
                 <FileText className="h-5 w-5 text-brand-600 dark:text-brand-300" />
                 <div className="flex-1">
-                  <p className="truncate text-sm font-medium text-slate-700 dark:text-slate-200">{fileName}</p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">{formatFileSize(fileSize)}</p>
+                  <p className="truncate text-sm font-medium text-slate-700 dark:text-slate-200">{selectedFile.name}</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">{formatFileSize(selectedFile.size)}</p>
                 </div>
-                <span className="rounded-md bg-sky-100 px-2 py-0.5 text-[10px] font-bold text-sky-700 dark:bg-sky-500/15 dark:text-sky-300">PDF</span>
+                <span className="rounded-md bg-sky-100 px-2 py-0.5 text-[10px] font-bold text-sky-700 dark:bg-sky-500/15 dark:text-sky-300">
+                  PDF
+                </span>
               </motion.div>
             )}
           </AnimatePresence>
 
           <button
-            onClick={handleUpload}
-            disabled={!fileName || uploading || fileSize > MAX_FILE_SIZE_BYTES}
+            onClick={() => void handleUpload()}
+            disabled={!selectedFile || uploading}
             className="btn-primary w-full"
           >
             {uploading ? (
-              <span className="flex items-center gap-2"><span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" /> Uploading…</span>
+              <span className="flex items-center gap-2">
+                <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" /> Uploading…
+              </span>
             ) : (
-              <span className="flex items-center gap-2"><UploadCloud className="h-4 w-4" /> Upload PDF</span>
+              <span className="flex items-center gap-2">
+                <UploadCloud className="h-4 w-4" /> Upload PDF
+              </span>
             )}
           </button>
 

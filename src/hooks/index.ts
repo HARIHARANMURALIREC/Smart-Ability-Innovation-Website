@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 export { useFormValidation } from './useFormValidation';
 export type { FormState, UseFormValidationReturn } from './useFormValidation';
+export { useStudentTeam } from './useStudentTeam';
 
 // Persist a piece of state in localStorage and keep it in sync.
 export function useLocalStorage<T>(key: string, initial: T) {

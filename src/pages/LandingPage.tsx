@@ -1,7 +1,6 @@
 import { motion } from 'framer-motion';
 import Hero from '@/components/sections/Hero';
 import StatsBand from '@/components/sections/StatsBand';
-import FeatureCards from '@/components/sections/FeatureCards';
 import Timeline from '@/components/sections/Timeline';
 import Button from '@/components/ui/Button';
 import { Rocket, ShieldCheck, Trophy, ArrowRight, Brain, Cpu } from 'lucide-react';
@@ -104,7 +103,6 @@ export default function LandingPage() {
       <Hero />
       <StatsBand />
       <AboutSection />
-      <FeatureCards />
       <Timeline />
       <CTASection />
     </>
