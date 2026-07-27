@@ -127,25 +127,15 @@ export default function TeamLeaderRegisterPage() {
   };
   const back = () => setStep((s) => Math.max(s - 1, 0));
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateStep2()) {
       error('Please fix the errors', 'Some team member fields need attention.');
       return;
     }
     const cleanMembers = form.members.filter((m) => m.name.trim() && m.email.trim() && m.department && m.year);
-    console.log('📝 [TeamLeaderRegisterPage] Submitting form with:', {
-      teamName: form.teamName,
-      leaderName: form.leaderName,
-      leaderEmail: form.leaderEmail,
-      college: form.college,
-      department: form.department,
-      year: form.year,
-      mobile: form.mobile,
-      membersCount: cleanMembers.length,
-    });
     setSubmitting(true);
-    setTimeout(() => {
+    try {
       const payload: Omit<Team, 'id' | 'pdfName' | 'submissionStatus' | 'submissionDate' | 'createdAt' | 'membersComplete' | 'selectedProjectId'> = {
         teamName: form.teamName.trim(),
         leaderName: form.leaderName.trim(),
@@ -157,19 +147,19 @@ export default function TeamLeaderRegisterPage() {
         mobile: form.mobile.trim(),
         members: cleanMembers,
       };
-      console.log('🚀 [TeamLeaderRegisterPage] Calling registerTeam with payload:', payload);
-      const res = registerTeam(payload);
-      console.log('✅ [TeamLeaderRegisterPage] registerTeam response:', res);
-      setSubmitting(false);
+      const res = await registerTeam(payload);
       if (res.ok) {
         success('Team registered!', `Welcome, ${form.teamName}. You can now log in.`);
         navigate('/student-login');
       } else {
         const errorMsg = typeof res.message === 'string' ? res.message : 'Registration failed. Please try again.';
-        console.error('❌ [TeamLeaderRegisterPage] Registration failed:', errorMsg);
         error('Registration failed', errorMsg);
       }
-    }, 800);
+    } catch (err) {
+      error('Registration failed', err instanceof Error ? err.message : 'Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const pw = passwordStrength(form.password);

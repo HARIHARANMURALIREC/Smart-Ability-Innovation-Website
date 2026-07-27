@@ -13,25 +13,25 @@ import {
 } from '@/utils';
 import { seedTeams } from '@/data/seed';
 import { supabase } from '@/config/supabase';
-import { createTeam, getTeamsByLeader, updateTeam } from '@/services/supabase/teams.service';
-import { addTeamMember, getTeamMembers } from '@/services/supabase/members.service';
+import {
+  createTeam,
+  getAllTeams,
+  deleteTeam as deleteTeamRemote,
+  updateTeam as updateTeamRemote,
+} from '@/services/supabase/teams.service';
 import { logActivity } from '@/services/supabase/logging.service';
 
-// Logger utility for debugging
 const logger = {
   info: (msg: string, data?: any) => {
     console.log(`✅ [AuthContext] ${msg}`, data || '');
   },
   error: (msg: string, err?: any) => {
     console.error(`❌ [AuthContext] ${msg}`, err || '');
-    // Also log to Supabase for persistence
     logActivity({
       action: 'auth_context_error',
-      error_message: `${msg}: ${err instanceof Error ? err.message : String(err)}`,
-      details: { error: err },
-    }).catch(() => {
-      // Silent fail if logging service is not available
-    });
+      description: `${msg}: ${err instanceof Error ? err.message : String(err)}`,
+      metadata: { error: err },
+    }).catch(() => {});
   },
   debug: (msg: string, data?: any) => {
     console.log(`🔍 [AuthContext] ${msg}`, data || '');
@@ -41,73 +41,180 @@ const logger = {
 interface AuthContextValue {
   user: AuthUser | null;
   teams: Team[];
+  teamsLoading: boolean;
   loginStudent: (email: string, password: string) => { ok: boolean; message: string };
   loginAdmin: (email: string, password: string) => { ok: boolean; message: string };
-  registerTeam: (data: Omit<Team, 'id' | 'pdfName' | 'submissionStatus' | 'submissionDate' | 'createdAt' | 'membersComplete' | 'selectedProjectId'>) => {
-    ok: boolean;
-    message: string;
-    team?: Team;
-  };
+  registerTeam: (
+    data: Omit<
+      Team,
+      | 'id'
+      | 'pdfName'
+      | 'submissionStatus'
+      | 'submissionDate'
+      | 'createdAt'
+      | 'membersComplete'
+      | 'selectedProjectId'
+    >,
+  ) => Promise<{ ok: boolean; message: string; team?: Team }>;
   registerMemberToTeam: (teamId: string, member: TeamMember) => void;
   updateTeamMembers: (teamId: string, members: Team['members']) => void;
   selectProject: (teamId: string, projectId: string) => void;
   uploadPdf: (fileName: string) => void;
   logout: () => void;
   deleteTeam: (teamId: string) => void;
-  refreshTeams: () => void;
+  refreshTeams: () => Promise<void>;
+  /** Merge previously registered local/imported teams into admin list and push to DB */
+  recoverTeams: (incoming: Team[]) => Promise<{ ok: boolean; message: string; recovered: number }>;
   resetToSeedData: () => void;
+}
+
+/** Keep every team from local + remote; remote wins on same id/email */
+function mergeTeams(local: Team[], remote: Team[]): Team[] {
+  const byId = new Map<string, Team>();
+  const byEmail = new Map<string, string>();
+
+  const add = (team: Team, prefer: boolean) => {
+    const email = team.leaderEmail?.trim().toLowerCase() || '';
+    const existingId = email ? byEmail.get(email) : undefined;
+    if (existingId && existingId !== team.id) {
+      if (!prefer) return;
+      byId.delete(existingId);
+    }
+    if (byId.has(team.id) && !prefer) return;
+    byId.set(team.id, team);
+    if (email) byEmail.set(email, team.id);
+  };
+
+  for (const t of local) add(t, false);
+  for (const t of remote) add(t, true);
+
+  return Array.from(byId.values()).sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+  );
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
+function initialTeams(): Team[] {
+  const existing = loadTeams();
+  const hasOldStructure = existing.some((team) =>
+    team.members.some((member) => !member.department || !member.year),
+  );
+
+  if (existing.length > 0 && !hasOldStructure) {
+    return existing;
+  }
+
+  const seeded = seedTeams();
+  saveTeams(seeded);
+  return seeded;
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(() => loadUser<AuthUser>());
-  const [teams, setTeams] = useState<Team[]>(() => {
-    const existing = loadTeams();
-    // Check if existing data has the old structure (members without department/year)
-    const hasOldStructure = existing.some(team => 
-      team.members.some(member => !member.department || !member.year)
-    );
-    
-    if (existing.length > 0 && !hasOldStructure) {
-      console.log('🔍 Debug: Using existing teams from localStorage');
-      return existing;
-    }
-    
-    console.log('🔍 Debug: Loading fresh seed data');
-    const seeded = seedTeams();
-    saveTeams(seeded);
-    return seeded;
-  });
+  const [teams, setTeams] = useState<Team[]>(initialTeams);
+  const [teamsLoading, setTeamsLoading] = useState(true);
 
   useEffect(() => {
     saveTeams(teams);
   }, [teams]);
 
+  const refreshTeams = async () => {
+    try {
+      setTeamsLoading(true);
+      const local = loadTeams();
+      const { teams: remote, error } = await getAllTeams();
+      if (error) {
+        logger.error('Failed to load teams from Supabase, keeping local cache', error);
+        setTeams(local);
+        return;
+      }
+      // Never wipe older local registrations when remote is empty/partial
+      const merged = mergeTeams(local, remote || []);
+      logger.info(`Loaded teams (local=${local.length}, remote=${remote?.length ?? 0}, merged=${merged.length})`);
+      setTeams(merged);
+      saveTeams(merged);
+    } catch (err) {
+      logger.error('refreshTeams failed', err);
+      setTeams(loadTeams());
+    } finally {
+      setTeamsLoading(false);
+    }
+  };
+
+  const recoverTeams: AuthContextValue['recoverTeams'] = async (incoming) => {
+    try {
+      if (!Array.isArray(incoming) || incoming.length === 0) {
+        return { ok: false, message: 'No teams found to recover.', recovered: 0 };
+      }
+
+      const cleaned = incoming
+        .filter((t) => t && t.teamName && t.leaderEmail)
+        .map((t) => ({
+          ...t,
+          id: t.id || uid('team'),
+          leaderEmail: String(t.leaderEmail).trim().toLowerCase(),
+          members: Array.isArray(t.members) ? t.members : [],
+          membersComplete: Boolean(t.membersComplete),
+          pdfName: t.pdfName ?? null,
+          submissionStatus: t.submissionStatus || 'not_started',
+          submissionDate: t.submissionDate ?? null,
+          createdAt: t.createdAt || new Date().toISOString(),
+          password: t.password || 'Recovered@123',
+          college: t.college || '',
+          department: t.department || '',
+          year: String(t.year || ''),
+          mobile: t.mobile || '',
+          leaderName: t.leaderName || 'Unknown',
+          teamName: t.teamName,
+        })) as Team[];
+
+      const before = teams.length;
+      const merged = mergeTeams(teams, cleaned);
+      setTeams(merged);
+      saveTeams(merged);
+
+      let synced = 0;
+      for (const team of cleaned) {
+        const { error } = await createTeam(team);
+        if (!error) synced += 1;
+        else logger.error(`Failed to sync recovered team ${team.teamName}`, error);
+      }
+
+      await refreshTeams();
+      const recovered = Math.max(merged.length - before, cleaned.length);
+      return {
+        ok: true,
+        message: `Recovered ${cleaned.length} team(s). Synced ${synced} to database.`,
+        recovered,
+      };
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      return { ok: false, message, recovered: 0 };
+    }
+  };
+
+  // Always sync from Supabase so admin sees registrations from any browser
+  useEffect(() => {
+    void refreshTeams();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const loginStudent: AuthContextValue['loginStudent'] = (email, password) => {
-    console.log('🔍 Debug: Attempting login for:', email);
-    console.log('🔍 Debug: Available teams:', teams.length);
-    console.log('🔍 Debug: Teams data:', teams.map(t => ({ 
-      id: t.id, 
-      name: t.teamName, 
-      leaderEmail: t.leaderEmail,
-      memberEmails: t.members.map(m => m.email)
-    })));
-    
     const found = findTeamByEmail(teams, email);
-    console.log('🔍 Debug: findTeamByEmail result:', found);
-    
     if (!found) return { ok: false, message: 'No account found with that email.' };
     if (found.team.password !== password)
       return { ok: false, message: 'Incorrect password. Please try again.' };
     const authUser: AuthUser = {
       role: 'student',
       email: email.trim().toLowerCase(),
-      name: found.isLeader ? found.team.leaderName : found.team.members.find((m) => m.email.toLowerCase() === email.trim().toLowerCase())?.name ?? 'Team Member',
+      name: found.isLeader
+        ? found.team.leaderName
+        : found.team.members.find((m) => m.email.toLowerCase() === email.trim().toLowerCase())?.name ??
+          'Team Member',
       teamId: found.team.id,
       isLeader: found.isLeader,
     };
-    console.log('🔍 Debug: Created authUser:', authUser);
     setUser(authUser);
     saveUser(authUser);
     return { ok: true, message: 'Login successful!' };
@@ -126,193 +233,117 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       };
       setUser(authUser);
       saveUser(authUser);
+      // Pull latest registrations when admin signs in
+      void refreshTeams();
       return { ok: true, message: 'Welcome back, Admin!' };
     }
     return { ok: false, message: 'Invalid admin credentials.' };
   };
 
-  const registerTeam: AuthContextValue['registerTeam'] = (data) => {
+  const registerTeam: AuthContextValue['registerTeam'] = async (data) => {
     try {
       logger.info('registerTeam called with data:', data);
-      
-      // Validate required fields
+
       if (!data.teamName || !data.leaderName || !data.leaderEmail || !data.password) {
-        const msg = 'Missing required fields';
-        logger.error(msg);
-        return { ok: false, message: msg };
+        return { ok: false, message: 'Missing required fields' };
       }
 
-      const exists = teams.some(
+      // Prefer remote list for duplicate checks when available
+      const { teams: remote } = await getAllTeams();
+      const source = remote && remote.length > 0 ? remote : teams;
+
+      const exists = source.some(
         (t) => t.teamName.trim().toLowerCase() === data.teamName.trim().toLowerCase(),
       );
       if (exists) {
-        const msg = 'A team with this name already exists.';
-        logger.error('Team name already exists:', data.teamName);
-        return { ok: false, message: msg };
+        return { ok: false, message: 'A team with this name already exists.' };
       }
 
-      // Log activity
-      logger.info('Attempting to register team:', data.teamName);
+      const emailTaken = source.some(
+        (t) => t.leaderEmail.trim().toLowerCase() === data.leaderEmail.trim().toLowerCase(),
+      );
+      if (emailTaken) {
+        return { ok: false, message: 'This leader email is already registered.' };
+      }
 
-      // Create a local team object for immediate UI feedback
       const localTeam: Team = {
         ...data,
         id: uid('team'),
         pdfName: null,
-        membersComplete: false,
+        membersComplete: (data.members?.length ?? 0) > 0,
         submissionStatus: 'not_started',
         submissionDate: null,
         createdAt: new Date().toISOString(),
       };
 
-      logger.info('Created localTeam object:', localTeam.id);
-
-      // Update local state immediately
-      setTeams((prev) => [localTeam, ...prev]);
-      logger.info('Team added to local state:', localTeam.id);
-
-      // Also try to save to Supabase (fire-and-forget for now)
-      // This ensures data is persisted even if there are delays
-      const supabaseTeam = {
-        id: localTeam.id,
-        teamName: localTeam.teamName,
-        leaderName: localTeam.leaderName,
-        leaderEmail: localTeam.leaderEmail,
-        password: localTeam.password,
-        college: localTeam.college,
-        department: localTeam.department,
-        year: String(localTeam.year),
-        mobile: localTeam.mobile && localTeam.mobile.trim() ? localTeam.mobile.trim() : '',
-        members: JSON.stringify(localTeam.members || []),
-        membersComplete: Boolean(localTeam.membersComplete),
-        pdfName: localTeam.pdfName || null,
-        submissionStatus: localTeam.submissionStatus,
-        submissionDate: localTeam.submissionDate || null,
-        createdAt: localTeam.createdAt,
-      };
-
-      logger.info('Attempting Supabase insert...');
-      logger.debug('Supabase team object:', supabaseTeam);
-      
-      // Only attempt Supabase insert if configured
-      // If Supabase table schema doesn't match, this will fail but won't block local registration
-      try {
-        supabase
-          .from('teams')
-          .insert([supabaseTeam])
-          .then(({ data, error }) => {
-            if (error) {
-              let errorMsg = 'Unknown error';
-              if (error && typeof error === 'object') {
-                errorMsg = (error as any).message || (error as any).hint || JSON.stringify(error);
-              } else if (error instanceof Error) {
-                errorMsg = error.message;
-              } else {
-                errorMsg = String(error);
-              }
-              logger.error('⚠️ Supabase insert failed (non-critical):', errorMsg);
-              logger.debug('This is a warning only - team is saved locally');
-            } else {
-              logger.info('✅ Team successfully synced to Supabase:', localTeam.id);
-            }
-          })
-          .catch((err) => {
-            logger.error('⚠️ Supabase connection error (non-critical):', err);
-            logger.debug('Team is saved locally - Supabase sync will retry on next login');
-          });
-      } catch (supabaseError) {
-        logger.error('⚠️ Supabase error (non-critical):', supabaseError);
+      const { team: saved, error } = await createTeam(localTeam);
+      if (error) {
+        logger.error('Supabase insert failed:', error);
+        // Keep local so student can still use the app on this browser,
+        // but warn that admin sync failed
+        setTeams((prev) => [localTeam, ...prev.filter((t) => t.id !== localTeam.id)]);
+        return {
+          ok: false,
+          message: `Could not save team to database: ${error}. Please try again or contact admin.`,
+        };
       }
 
-      logger.info('Returning success response - team saved locally');
-      return { ok: true, message: 'Team registered successfully!', team: localTeam };
+      const finalTeam = saved ?? localTeam;
+      setTeams((prev) => [finalTeam, ...prev.filter((t) => t.id !== finalTeam.id)]);
+      logger.info('Team registered and synced to Supabase:', finalTeam.id);
+
+      // Refresh full list so admin/other tabs stay consistent
+      void refreshTeams();
+
+      return { ok: true, message: 'Team registered successfully!', team: finalTeam };
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       logger.error('registerTeam error:', message);
-      logger.error('Full catch error:', error);
-      // Return error to user so they can debug
       return { ok: false, message: `Error: ${message}` };
     }
   };
 
   const updateTeamMembers: AuthContextValue['updateTeamMembers'] = (teamId, members) => {
     setTeams((prev) =>
-      prev.map((t) =>
-        t.id === teamId ? { ...t, members, membersComplete: true } : t,
-      ),
+      prev.map((t) => (t.id === teamId ? { ...t, members, membersComplete: true } : t)),
     );
+    void updateTeamRemote(teamId, { members, membersComplete: true });
   };
 
   const selectProject: AuthContextValue['selectProject'] = (teamId, projectId) => {
     setTeams((prev) =>
-      prev.map((t) =>
-        t.id === teamId ? { ...t, selectedProjectId: projectId } : t,
-      ),
+      prev.map((t) => (t.id === teamId ? { ...t, selectedProjectId: projectId } : t)),
     );
+    void updateTeamRemote(teamId, { selectedProjectId: projectId });
   };
 
   const registerMemberToTeam: AuthContextValue['registerMemberToTeam'] = (teamId, member) => {
     try {
       logger.info('Attempting to add member to team:', { teamId, memberEmail: member.email });
-      
-      // Update local state immediately
+
       setTeams((prev) =>
-        prev.map((t) =>
-          t.id === teamId
-            ? { ...t, members: [...t.members, member] }
-            : t,
-        ),
+        prev.map((t) => {
+          if (t.id !== teamId) return t;
+          const next = { ...t, members: [...t.members, member], membersComplete: true };
+          void updateTeamRemote(teamId, { members: next.members, membersComplete: true });
+          return next;
+        }),
       );
-      logger.info('Member added to local state:', member.email);
 
-      // Verify team exists in Supabase before adding member
       supabase
-        .from('teams')
-        .select('id')
-        .eq('id', teamId)
-        .single()
-        .then(({ data, error: selectError }) => {
-          if (selectError || !data) {
-            logger.error('Team not found in Supabase, cannot add member:', teamId);
-            return;
-          }
-
-          // Team exists, now insert member (fire-and-forget)
-          supabase
-            .from('team_members')
-            .insert([{
-              id: uid('member'),
-              team_id: teamId,
-              name: member.name,
-              email: member.email,
-              department: member.department,
-              year: String(member.year),
-            }])
-            .then(({ error }) => {
-              if (error) {
-                logger.error('Failed to save member to Supabase:', error);
-                supabase.from('activity_logs').insert([{
-                  id: uid('log'),
-                  action: 'member_registration_error',
-                  description: `Failed to add member ${member.email} to team ${teamId}`,
-                  metadata: { teamId, memberEmail: member.email, error: error.message },
-                }]);
-              } else {
-                logger.info('✅ Member successfully saved to Supabase:', member.email);
-                supabase.from('activity_logs').insert([{
-                  id: uid('log'),
-                  action: 'member_added',
-                  description: `Member ${member.email} added to team`,
-                  metadata: { teamId, memberEmail: member.email },
-                }]);
-              }
-            })
-            .catch((err) => {
-              logger.error('Supabase connection error:', err);
-            });
-        })
-        .catch((err) => {
-          logger.error('Failed to verify team existence:', err);
+        .from('team_members')
+        .insert([
+          {
+            id: uid('member'),
+            team_id: teamId,
+            name: member.name,
+            email: member.email,
+            department: member.department,
+            year: String(member.year),
+          },
+        ])
+        .then(({ error }) => {
+          if (error) logger.error('Failed to save member to team_members table:', error);
         });
     } catch (error) {
       logger.error('registerMemberToTeam error:', error);
@@ -321,10 +352,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const uploadPdf: AuthContextValue['uploadPdf'] = (fileName) => {
     if (!user || user.role !== 'student' || !user.teamId) return;
-    
+
     try {
-      logger.info('Attempting to upload PDF:', { fileName, teamId: user.teamId });
-      
+      const submissionDate = new Date().toISOString();
       setTeams((prev) =>
         prev.map((t) =>
           t.id === user.teamId
@@ -332,29 +362,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 ...t,
                 pdfName: fileName,
                 submissionStatus: 'submitted',
-                submissionDate: new Date().toISOString(),
+                submissionDate,
               }
             : t,
         ),
       );
-      logger.info('PDF upload updated locally:', fileName);
 
-      // Log to Supabase
-      supabase
-        .from('activity_logs')
-        .insert([{
-          id: uid('log'),
-          action: 'pdf_uploaded',
-          description: `PDF submitted: ${fileName}`,
-          metadata: { fileName, teamId: user.teamId },
-        }])
-        .then(({ error }) => {
-          if (error) {
-            logger.error('Failed to log PDF upload:', error);
-          } else {
-            logger.info('✅ PDF upload logged to Supabase');
-          }
-        });
+      void updateTeamRemote(user.teamId, {
+        pdfName: fileName,
+        submissionStatus: 'submitted',
+        submissionDate,
+      });
     } catch (error) {
       logger.error('uploadPdf error:', error);
     }
@@ -362,6 +380,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const deleteTeam: AuthContextValue['deleteTeam'] = (teamId) => {
     setTeams((prev) => prev.filter((t) => t.id !== teamId));
+    void deleteTeamRemote(teamId);
   };
 
   const logout = () => {
@@ -369,9 +388,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     clearUser();
   };
 
-  const refreshTeams = () => setTeams(loadTeams());
-
-  // Debug function to clear localStorage and reset to seed data
   const resetToSeedData = () => {
     localStorage.removeItem(STORAGE_KEYS.teams);
     localStorage.removeItem(STORAGE_KEYS.user);
@@ -379,13 +395,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setTeams(seeded);
     saveTeams(seeded);
     setUser(null);
-    console.log('🔄 Reset to seed data complete');
+    void refreshTeams();
   };
 
   const value = useMemo<AuthContextValue>(
-    () => ({ user, teams, loginStudent, loginAdmin, registerTeam, registerMemberToTeam, updateTeamMembers, selectProject, uploadPdf, logout, deleteTeam, refreshTeams, resetToSeedData }),
+    () => ({
+      user,
+      teams,
+      teamsLoading,
+      loginStudent,
+      loginAdmin,
+      registerTeam,
+      registerMemberToTeam,
+      updateTeamMembers,
+      selectProject,
+      uploadPdf,
+      logout,
+      deleteTeam,
+      refreshTeams,
+      recoverTeams,
+      resetToSeedData,
+    }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [user, teams],
+    [user, teams, teamsLoading],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

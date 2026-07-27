@@ -1,28 +1,112 @@
 /**
  * Supabase Teams Service
- * Handles team operations (create, read, update, delete)
- * 
+ * Live DB uses lowercase columns (Postgres folded unquoted camelCase).
+ *
  * @module services/supabase/teams.service
  */
 
 import { supabase } from '@/config/supabase';
+import type { Team, TeamMember, SubmissionStatus } from '@/types';
+
+/**
+ * Map DB row (lowercase or camelCase) → app Team type
+ */
+export function normalizeTeam(row: Record<string, any>): Team {
+  const membersRaw = row.members ?? '[]';
+  let members: TeamMember[] = [];
+  if (typeof membersRaw === 'string') {
+    try {
+      const parsed = JSON.parse(membersRaw);
+      members = Array.isArray(parsed) ? parsed : [];
+    } catch {
+      members = [];
+    }
+  } else if (Array.isArray(membersRaw)) {
+    members = membersRaw;
+  }
+
+  const status = (row.submissionStatus ?? row.submissionstatus ?? 'not_started') as SubmissionStatus;
+
+  return {
+    id: String(row.id),
+    teamName: row.teamName ?? row.teamname ?? '',
+    leaderName: row.leaderName ?? row.leadername ?? '',
+    leaderEmail: row.leaderEmail ?? row.leaderemail ?? '',
+    password: row.password ?? '',
+    college: row.college ?? '',
+    department: row.department ?? '',
+    year: String(row.year ?? ''),
+    mobile: row.mobile ?? '',
+    members,
+    membersComplete: Boolean(row.membersComplete ?? row.memberscomplete ?? false),
+    selectedProjectId: row.selectedProjectId ?? row.selectedprojectid ?? undefined,
+    pdfName: row.pdfName ?? row.pdfname ?? null,
+    submissionStatus: status,
+    submissionDate: row.submissionDate ?? row.submissiondate ?? null,
+    createdAt: row.createdAt ?? row.createdat ?? new Date().toISOString(),
+  };
+}
+
+/** Insert/update payload matching live lowercase columns */
+function toDbPayload(team: Team): Record<string, unknown> {
+  return {
+    id: team.id,
+    teamname: team.teamName,
+    leadername: team.leaderName,
+    leaderemail: team.leaderEmail,
+    password: team.password,
+    college: team.college,
+    department: team.department,
+    year: String(team.year),
+    mobile: team.mobile || '',
+    members: team.members || [],
+    memberscomplete: Boolean(team.membersComplete),
+    pdfname: team.pdfName,
+    submissionstatus: team.submissionStatus,
+    submissiondate: team.submissionDate,
+    selectedprojectid: team.selectedProjectId ?? null,
+    createdat: team.createdAt,
+  };
+}
+
+function toDbUpdates(updates: Partial<Team>): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  if (updates.teamName !== undefined) out.teamname = updates.teamName;
+  if (updates.leaderName !== undefined) out.leadername = updates.leaderName;
+  if (updates.leaderEmail !== undefined) out.leaderemail = updates.leaderEmail;
+  if (updates.password !== undefined) out.password = updates.password;
+  if (updates.college !== undefined) out.college = updates.college;
+  if (updates.department !== undefined) out.department = updates.department;
+  if (updates.year !== undefined) out.year = String(updates.year);
+  if (updates.mobile !== undefined) out.mobile = updates.mobile;
+  if (updates.members !== undefined) out.members = updates.members;
+  if (updates.membersComplete !== undefined) out.memberscomplete = updates.membersComplete;
+  if (updates.pdfName !== undefined) out.pdfname = updates.pdfName;
+  if (updates.submissionStatus !== undefined) out.submissionstatus = updates.submissionStatus;
+  if (updates.submissionDate !== undefined) out.submissiondate = updates.submissionDate;
+  if (updates.selectedProjectId !== undefined) out.selectedprojectid = updates.selectedProjectId;
+  return out;
+}
 
 /**
  * Create a new team
  */
-export async function createTeam(input: any): Promise<{ team: any | null; error: string | null }> {
+export async function createTeam(input: Team): Promise<{ team: Team | null; error: string | null }> {
   try {
-    const { data, error } = await supabase
-      .from('teams')
-      .insert([input])
-      .select()
-      .single();
+    const payload = toDbPayload(input);
+    let { data, error } = await supabase.from('teams').insert([payload]).select().single();
+
+    // Older schemas may lack password
+    if (error && /password/i.test(error.message)) {
+      const { password: _pw, ...withoutPassword } = payload;
+      ({ data, error } = await supabase.from('teams').insert([withoutPassword]).select().single());
+    }
 
     if (error) {
       return { team: null, error: error.message };
     }
 
-    return { team: data, error: null };
+    return { team: data ? normalizeTeam(data) : input, error: null };
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to create team';
     return { team: null, error: message };
@@ -32,19 +116,15 @@ export async function createTeam(input: any): Promise<{ team: any | null; error:
 /**
  * Get team by ID
  */
-export async function getTeamById(teamId: string): Promise<{ team: any | null; error: string | null }> {
+export async function getTeamById(teamId: string): Promise<{ team: Team | null; error: string | null }> {
   try {
-    const { data, error } = await supabase
-      .from('teams')
-      .select()
-      .eq('id', teamId)
-      .single();
+    const { data, error } = await supabase.from('teams').select('*').eq('id', teamId).single();
 
     if (error) {
       return { team: null, error: error.message };
     }
 
-    return { team: data, error: null };
+    return { team: data ? normalizeTeam(data) : null, error: null };
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to fetch team';
     return { team: null, error: message };
@@ -52,22 +132,22 @@ export async function getTeamById(teamId: string): Promise<{ team: any | null; e
 }
 
 /**
- * Get teams by leader ID
+ * Get teams by leader email
  */
 export async function getTeamsByLeader(
   leaderEmail: string
-): Promise<{ teams: any[] | null; error: string | null }> {
+): Promise<{ teams: Team[] | null; error: string | null }> {
   try {
     const { data, error } = await supabase
       .from('teams')
-      .select()
-      .eq('leaderEmail', leaderEmail);
+      .select('*')
+      .eq('leaderemail', leaderEmail.trim().toLowerCase());
 
     if (error) {
       return { teams: null, error: error.message };
     }
 
-    return { teams: data, error: null };
+    return { teams: (data || []).map(normalizeTeam), error: null };
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to fetch teams';
     return { teams: null, error: message };
@@ -75,20 +155,30 @@ export async function getTeamsByLeader(
 }
 
 /**
- * Get all teams
+ * Get all teams (admin source of truth)
+ * Uses lowercase `createdat` — camelCase `createdAt` 400s on this DB.
  */
-export async function getAllTeams(): Promise<{ teams: any[] | null; error: string | null }> {
+export async function getAllTeams(): Promise<{ teams: Team[] | null; error: string | null }> {
   try {
-    const { data, error } = await supabase
+    let { data, error } = await supabase
       .from('teams')
-      .select()
-      .order('createdAt', { ascending: false });
+      .select('*')
+      .order('createdat', { ascending: false });
+
+    // Fallback if order column name differs
+    if (error) {
+      console.warn('[teams.service] ordered select failed, retrying without order:', error.message);
+      ({ data, error } = await supabase.from('teams').select('*'));
+    }
 
     if (error) {
+      console.error('[teams.service] getAllTeams failed:', error.message);
       return { teams: null, error: error.message };
     }
 
-    return { teams: data, error: null };
+    const teams = (data || []).map(normalizeTeam);
+    teams.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    return { teams, error: null };
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to fetch teams';
     return { teams: null, error: message };
@@ -98,11 +188,14 @@ export async function getAllTeams(): Promise<{ teams: any[] | null; error: strin
 /**
  * Update team
  */
-export async function updateTeam(teamId: string, updates: any): Promise<{ team: any | null; error: string | null }> {
+export async function updateTeam(
+  teamId: string,
+  updates: Partial<Team>
+): Promise<{ team: Team | null; error: string | null }> {
   try {
     const { data, error } = await supabase
       .from('teams')
-      .update(updates)
+      .update(toDbUpdates(updates))
       .eq('id', teamId)
       .select()
       .single();
@@ -111,7 +204,7 @@ export async function updateTeam(teamId: string, updates: any): Promise<{ team: 
       return { team: null, error: error.message };
     }
 
-    return { team: data, error: null };
+    return { team: data ? normalizeTeam(data) : null, error: null };
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to update team';
     return { team: null, error: message };
@@ -123,10 +216,7 @@ export async function updateTeam(teamId: string, updates: any): Promise<{ team: 
  */
 export async function deleteTeam(teamId: string): Promise<{ error: string | null }> {
   try {
-    const { error } = await supabase
-      .from('teams')
-      .delete()
-      .eq('id', teamId);
+    const { error } = await supabase.from('teams').delete().eq('id', teamId);
 
     if (error) {
       return { error: error.message };
@@ -145,16 +235,16 @@ export async function deleteTeam(teamId: string): Promise<{ error: string | null
 export async function selectProject(
   teamId: string,
   projectId: string,
-  projectTitle: string,
-  abstract: string
-): Promise<{ team: any | null; error: string | null }> {
+  _projectTitle: string,
+  _abstract: string
+): Promise<{ team: Team | null; error: string | null }> {
   try {
     const { data, error } = await supabase
       .from('teams')
       .update({
-  selectedProjectId: projectId,
-  submissionStatus: 'submitted',
-})
+        selectedprojectid: projectId,
+        submissionstatus: 'submitted',
+      })
       .eq('id', teamId)
       .select()
       .single();
@@ -163,7 +253,7 @@ export async function selectProject(
       return { team: null, error: error.message };
     }
 
-    return { team: data, error: null };
+    return { team: data ? normalizeTeam(data) : null, error: null };
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to select project';
     return { team: null, error: message };
@@ -180,21 +270,17 @@ export async function getTeamStats(): Promise<{
   error: string | null;
 }> {
   try {
-    const { data, error } = await supabase
-      .from('teams')
-      .select('submissionStatus', { count: 'exact' });
+    const { teams, error } = await getAllTeams();
 
-    if (error) {
-      return { totalTeams: 0, activeTeams: 0, submittedTeams: 0, error: error.message };
+    if (error || !teams) {
+      return { totalTeams: 0, activeTeams: 0, submittedTeams: 0, error: error };
     }
 
-    const submitted =
-  data?.filter((t: any) => t.submissionStatus === 'submitted').length || 0;
-    const total = data?.length || 0;
+    const submitted = teams.filter((t) => t.submissionStatus === 'submitted').length;
 
     return {
-      totalTeams: total,
-      activeTeams: total - submitted,
+      totalTeams: teams.length,
+      activeTeams: teams.length - submitted,
       submittedTeams: submitted,
       error: null,
     };

@@ -23,9 +23,12 @@ if (!supabaseAnonKey) {
 // CRITICAL: Remove /rest/v1 from URL if present - Supabase client adds it automatically
 if (supabaseUrl.includes('/rest/v1')) {
   console.warn('⚠️ [Supabase Config] URL contains /rest/v1 suffix. Removing it...');
-  supabaseUrl = supabaseUrl.replace('/rest/v1', '');
+  supabaseUrl = supabaseUrl.replace(/\/rest\/v1\/?/g, '');
   console.log('✅ [Supabase Config] Corrected URL:', supabaseUrl);
 }
+
+// Normalize trailing slash
+supabaseUrl = supabaseUrl.replace(/\/+$/, '');
 
 console.log('🔧 [Supabase Config] Initializing with URL:', supabaseUrl);
 

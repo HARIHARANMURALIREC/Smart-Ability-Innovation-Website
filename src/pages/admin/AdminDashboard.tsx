@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Users, GraduationCap, FileCheck2, Clock, ArrowRight, Activity as ActivityIcon } from 'lucide-react';
@@ -14,9 +14,14 @@ import TeamDetailsModal from '@/components/admin/TeamDetailsModal';
 import type { Team } from '@/types';
 
 export default function AdminDashboard() {
-  const { user, teams } = useAuth();
+  const { user, teams, refreshTeams } = useAuth();
   const navigate = useNavigate();
   const [selected, setSelected] = useState<Team | null>(null);
+
+  useEffect(() => {
+    void refreshTeams();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   if (!user || user.role !== 'admin') return <Navigate to="/admin-login" replace />;
 
