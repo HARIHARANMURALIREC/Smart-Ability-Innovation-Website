@@ -31,7 +31,7 @@ export const YEARS = ['1st Year', '2nd Year', '3rd Year', '4th Year', '5th Year'
 export const MAX_TEAM_MEMBERS = 4;
 
 /** Max teams that may select the same problem statement */
-export const MAX_TEAMS_PER_PROBLEM = 10;
+export const MAX_TEAMS_PER_PROBLEM = 7;
 
 export const emptyMember = () => ({
   name: '',
