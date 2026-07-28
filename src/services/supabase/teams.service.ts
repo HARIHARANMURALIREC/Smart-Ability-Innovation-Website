@@ -247,7 +247,7 @@ export async function deleteTeam(teamId: string): Promise<{ error: string | null
 
 /**
  * Update team project selection (does NOT mark PDF as submitted)
- * Enforces max 5 teams per problem statement.
+ * Enforces max teams per problem statement and locks selection once chosen.
  */
 export async function selectProject(
   teamId: string,
@@ -264,6 +264,13 @@ export async function selectProject(
     // Already on this problem — no-op success
     if (existing.team.selectedProjectId === projectId) {
       return { team: existing.team, error: null };
+    }
+
+    if (existing.team.selectedProjectId) {
+      return {
+        team: null,
+        error: 'Your team has already selected a problem statement. The selection cannot be changed.',
+      };
     }
 
     const { count, error: countError } = await supabase

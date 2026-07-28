@@ -359,6 +359,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { ok: true, message: 'Already selected.' };
     }
 
+    if (current.selectedProjectId) {
+      return {
+        ok: false,
+        message: 'Your team has already selected a problem statement. The selection cannot be changed.',
+      };
+    }
+
     const taken = teams.filter((t) => t.selectedProjectId === projectId).length;
     if (taken >= MAX_TEAMS_PER_PROBLEM) {
       return {

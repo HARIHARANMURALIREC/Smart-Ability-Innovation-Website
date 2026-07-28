@@ -21,6 +21,11 @@ export default function StudentProblems() {
       return;
     }
 
+    if (team.selectedProjectId && team.selectedProjectId !== projectId) {
+      warning('Selection locked', 'Your team has already selected a problem statement. It cannot be changed.');
+      return;
+    }
+
     await refreshTeams();
     const res = await selectProject(team.id, projectId);
     if (!res.ok) {
@@ -53,14 +58,16 @@ export default function StudentProblems() {
           </div>
           <p className="text-slate-600 dark:text-slate-400">
             {user.isLeader
-              ? `Select a problem statement for your team. Each problem allows up to ${MAX_TEAMS_PER_PROBLEM} teams.`
+              ? team.selectedProjectId
+                ? `Your team has selected a problem statement. The selection is locked and cannot be changed.`
+                : `Select a problem statement for your team. Each problem allows up to ${MAX_TEAMS_PER_PROBLEM} teams. Choose carefully — once selected, it cannot be changed.`
               : 'Browse available problem statements. Your team leader will select one for your team.'}
           </p>
 
           {selectedProject && user.isLeader && (
             <div className="rounded-lg border-2 border-green-400 bg-green-50 p-4 dark:border-green-500/40 dark:bg-green-500/10">
               <p className="mb-2 text-sm font-semibold text-green-900 dark:text-green-200">
-                ✓ Your team has selected:
+                ✓ Your team has selected (locked):
               </p>
               <p className="text-lg font-bold text-green-900 dark:text-green-100">{selectedProject.title}</p>
               <p className="mt-1 text-sm text-green-700 dark:text-green-300">

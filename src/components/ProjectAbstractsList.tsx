@@ -66,7 +66,13 @@ export default function ProjectAbstractsList({
 
       <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-800/40 dark:bg-amber-950/20 dark:text-amber-200">
         Each problem statement can be selected by a maximum of{' '}
-        <strong>{MAX_TEAMS_PER_PROBLEM} teams</strong>. When full, it becomes locked.
+        <strong>{MAX_TEAMS_PER_PROBLEM} teams</strong>. When full, it becomes unavailable.
+        {selectedProjectId && (
+          <>
+            {' '}
+            Your team&apos;s selection is <strong>locked</strong> and cannot be changed.
+          </>
+        )}
       </div>
 
       <div className="space-y-4 rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900">
@@ -135,6 +141,7 @@ export default function ProjectAbstractsList({
               showSelectButton={showSelectButton}
               teamsSelected={selectionCounts[project.id] ?? 0}
               maxTeams={MAX_TEAMS_PER_PROBLEM}
+              selectionLocked={Boolean(selectedProjectId)}
             />
           ))
         ) : (

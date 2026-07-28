@@ -12,6 +12,8 @@ interface ProjectAbstractCardProps {
   /** How many teams have already selected this problem */
   teamsSelected?: number;
   maxTeams?: number;
+  /** Team already chose a PS — selection cannot be changed */
+  selectionLocked?: boolean;
 }
 
 export default function ProjectAbstractCard({
@@ -21,12 +23,14 @@ export default function ProjectAbstractCard({
   showSelectButton = true,
   teamsSelected = 0,
   maxTeams = MAX_TEAMS_PER_PROBLEM,
+  selectionLocked = false,
 }: ProjectAbstractCardProps) {
   const { user } = useAuth();
   const [expanded, setExpanded] = useState(false);
 
-  const isLocked = !isSelected && teamsSelected >= maxTeams;
-  const canSelect = showSelectButton && user?.isLeader === true && !!onSelect && !isLocked;
+  const isFull = !isSelected && teamsSelected >= maxTeams;
+  const canSelect =
+    showSelectButton && user?.isLeader === true && !!onSelect && !isFull && !selectionLocked;
   const seatsLeft = Math.max(0, maxTeams - teamsSelected);
 
   const getDifficultyColor = (difficulty: string) => {
@@ -63,7 +67,7 @@ export default function ProjectAbstractCard({
       className={`rounded-xl border-2 transition-all ${
         isSelected
           ? 'border-brand-500 bg-brand-50/80 shadow-md dark:border-brand-400 dark:bg-brand-950/30'
-          : isLocked
+          : isFull
             ? 'border-slate-200 bg-slate-50 opacity-75 dark:border-slate-700 dark:bg-slate-900/60'
             : 'border-slate-200 bg-white hover:border-slate-300 hover:shadow-sm dark:border-slate-700 dark:bg-slate-900'
       }`}
@@ -80,8 +84,13 @@ export default function ProjectAbstractCard({
                 {project.problemNumber}
               </span>
               <h3 className="text-lg font-bold text-slate-900 dark:text-white">{project.title}</h3>
-              {isLocked && (
+              {isFull && (
                 <span className="inline-flex items-center gap-1 rounded-full bg-slate-200 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-slate-600 dark:bg-slate-700 dark:text-slate-300">
+                  <Lock className="h-3 w-3" /> Full
+                </span>
+              )}
+              {selectionLocked && isSelected && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300">
                   <Lock className="h-3 w-3" /> Locked
                 </span>
               )}
@@ -96,13 +105,13 @@ export default function ProjectAbstractCard({
               </span>
               <span
                 className={`inline-block rounded-full px-3 py-1 text-xs font-semibold ${
-                  isLocked
+                  isFull
                     ? 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300'
                     : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
                 }`}
               >
                 {teamsSelected}/{maxTeams} teams
-                {!isLocked && !isSelected ? ` · ${seatsLeft} left` : ''}
+                {!isFull && !isSelected ? ` · ${seatsLeft} left` : ''}
               </span>
             </div>
 
@@ -115,11 +124,12 @@ export default function ProjectAbstractCard({
             {showSelectButton && user?.isLeader && (
               isSelected ? (
                 <div className="inline-flex min-w-[140px] items-center justify-center gap-1.5 rounded-xl border-2 border-emerald-500 bg-emerald-50 px-4 py-2.5 text-sm font-semibold text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300">
-                  <Check className="h-4 w-4" /> Selected
+                  <Check className="h-4 w-4" />
+                  {selectionLocked ? 'Locked' : 'Selected'}
                 </div>
-              ) : isLocked ? (
+              ) : isFull ? (
                 <div className="inline-flex min-w-[140px] items-center justify-center gap-1.5 rounded-xl border-2 border-slate-300 bg-slate-100 px-4 py-2.5 text-sm font-semibold text-slate-500 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-400">
-                  <Lock className="h-4 w-4" /> Locked
+                  <Lock className="h-4 w-4" /> Full
                 </div>
               ) : canSelect ? (
                 <button
@@ -197,9 +207,15 @@ export default function ProjectAbstractCard({
             </button>
           )}
 
-          {isLocked && !isSelected && (
+          {isFull && !isSelected && (
             <p className="rounded-lg bg-slate-100 px-3 py-2 text-center text-sm text-slate-600 dark:bg-slate-800 dark:text-slate-400">
               This problem is full ({maxTeams}/{maxTeams} teams). Choose another problem statement.
+            </p>
+          )}
+
+          {selectionLocked && isSelected && (
+            <p className="rounded-lg bg-emerald-50 px-3 py-2 text-center text-sm text-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-200">
+              Your team&apos;s selection is locked and cannot be changed.
             </p>
           )}
         </div>
