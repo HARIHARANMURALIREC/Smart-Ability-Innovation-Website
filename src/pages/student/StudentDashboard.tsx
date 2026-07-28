@@ -9,15 +9,13 @@ import {
   FileText,
   ArrowRight,
   Info,
-  Activity as ActivityIcon,
   Lightbulb,
   Upload,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import { getIcon } from '@/utils/icons';
 import { useAuth } from '@/context/AuthContext';
 import { teamProgress, teamMemberCount } from '@/utils';
-import { SAMPLE_ACTIVITIES, SAMPLE_NOTIFICATIONS } from '@/data';
+import { SAMPLE_NOTIFICATIONS } from '@/data';
 import { PROJECT_ABSTRACTS } from '@/data/projectAbstracts';
 import DashboardHeader from '@/components/admin/DashboardHeader';
 import StatusBadge from '@/components/ui/StatusBadge';
@@ -178,74 +176,37 @@ export default function StudentDashboard() {
           </motion.div>
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-2">
-          <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="glass-card p-6">
-            <div className="mb-4 flex items-center gap-2">
-              <Info className="h-5 w-5 text-brand-600 dark:text-brand-300" />
-              <h3 className="font-display text-base font-bold text-slate-900 dark:text-white">Notifications</h3>
-            </div>
-            <div className="space-y-3">
-              {SAMPLE_NOTIFICATIONS.map((n) => (
-                <div
-                  key={n.id}
-                  className={`flex gap-3 rounded-xl p-3 ${
-                    n.read ? 'bg-slate-50/60 dark:bg-slate-800/30' : 'bg-brand-50/40 dark:bg-brand-900/10'
+        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="glass-card p-6">
+          <div className="mb-4 flex items-center gap-2">
+            <Info className="h-5 w-5 text-brand-600 dark:text-brand-300" />
+            <h3 className="font-display text-base font-bold text-slate-900 dark:text-white">Notifications</h3>
+          </div>
+          <div className="space-y-3">
+            {SAMPLE_NOTIFICATIONS.map((n) => (
+              <div
+                key={n.id}
+                className={`flex gap-3 rounded-xl p-3 ${
+                  n.read ? 'bg-slate-50/60 dark:bg-slate-800/30' : 'bg-brand-50/40 dark:bg-brand-900/10'
+                }`}
+              >
+                <span
+                  className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${
+                    n.tone === 'warning'
+                      ? 'bg-amber-500'
+                      : n.tone === 'success'
+                        ? 'bg-emerald-500'
+                        : 'bg-sky-500'
                   }`}
-                >
-                  <span
-                    className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${
-                      n.tone === 'warning'
-                        ? 'bg-amber-500'
-                        : n.tone === 'success'
-                          ? 'bg-emerald-500'
-                          : 'bg-sky-500'
-                    }`}
-                  />
-                  <div>
-                    <p className="text-sm font-semibold text-slate-900 dark:text-white">{n.title}</p>
-                    <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{n.body}</p>
-                    <p className="mt-1 text-[11px] text-slate-400">{n.time}</p>
-                  </div>
+                />
+                <div>
+                  <p className="text-sm font-semibold text-slate-900 dark:text-white">{n.title}</p>
+                  <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{n.body}</p>
+                  <p className="mt-1 text-[11px] text-slate-400">{n.time}</p>
                 </div>
-              ))}
-            </div>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.08 }}
-            className="glass-card p-6"
-          >
-            <div className="mb-4 flex items-center gap-2">
-              <ActivityIcon className="h-5 w-5 text-brand-600 dark:text-brand-300" />
-              <h3 className="font-display text-base font-bold text-slate-900 dark:text-white">Recent Activity</h3>
-            </div>
-            <div className="space-y-3">
-              {SAMPLE_ACTIVITIES.slice(0, 4).map((a) => {
-                const Icon = getIcon(a.icon);
-                const toneCls: Record<string, string> = {
-                  brand: 'bg-brand-100 text-brand-600 dark:bg-brand-900/30 dark:text-brand-300',
-                  accent: 'bg-accent-100 text-accent-600 dark:bg-accent-900/30 dark:text-accent-300',
-                  sky: 'bg-sky-100 text-sky-600 dark:bg-sky-900/30 dark:text-sky-300',
-                  emerald: 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-300',
-                  amber: 'bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-300',
-                };
-                return (
-                  <div key={a.id} className="flex items-center gap-3">
-                    <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${toneCls[a.tone]}`}>
-                      <Icon className="h-4 w-4" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium text-slate-700 dark:text-slate-200">{a.title}</p>
-                      <p className="text-xs text-slate-400">{a.time}</p>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </motion.div>
-        </div>
+              </div>
+            ))}
+          </div>
+        </motion.div>
       </div>
     </div>
   );
