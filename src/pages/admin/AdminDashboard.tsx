@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Users, GraduationCap, FileCheck2, Clock, ArrowRight, Activity as ActivityIcon } from 'lucide-react';
+import { Users, GraduationCap, FileCheck2, Clock, ArrowRight, Activity as ActivityIcon, Download } from 'lucide-react';
 import { getIcon } from '@/utils/icons';
 import { useAuth } from '@/context/AuthContext';
 import DashboardHeader from '@/components/admin/DashboardHeader';
@@ -10,6 +10,7 @@ import StatusBadge from '@/components/ui/StatusBadge';
 import { BarChart } from '@/components/admin/Charts';
 import { REGISTRATION_CHART, SUBMISSION_CHART, SAMPLE_ACTIVITIES } from '@/data';
 import { teamMemberCount } from '@/utils';
+import { exportTeamsToExcel } from '@/utils/exportTeamsExcel';
 import TeamDetailsModal from '@/components/admin/TeamDetailsModal';
 import { getProjectAbstractById } from '@/data/projectAbstracts';
 import type { Team } from '@/types';
@@ -32,12 +33,27 @@ export default function AdminDashboard() {
 
   const recentTeams = teams.slice(0, 5);
 
+  const handleExportExcel = async () => {
+    await exportTeamsToExcel(teams);
+  };
+
   return (
     <div className="min-h-screen bg-slate-100 dark:bg-slate-950">
       <DashboardHeader
         title="Admin Dashboard"
         subtitle="Overview of the entire innovation"
         breadcrumbs={[{ label: 'Admin', to: '/admin/dashboard' }, { label: 'Dashboard' }]}
+        actions={
+          <button
+            type="button"
+            onClick={handleExportExcel}
+            disabled={teams.length === 0}
+            className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:opacity-60 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+          >
+            <Download className="h-4 w-4" />
+            Export Excel
+          </button>
+        }
       />
 
       <div className="mx-auto max-w-7xl space-y-6 px-4 py-6 sm:px-6 lg:px-8">
