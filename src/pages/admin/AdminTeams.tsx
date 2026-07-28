@@ -9,9 +9,43 @@ import DataTable from '@/components/admin/DataTable';
 import StatusBadge from '@/components/ui/StatusBadge';
 import Modal from '@/components/ui/Modal';
 import TeamDetailsModal from '@/components/admin/TeamDetailsModal';
-import { getProjectAbstractById } from '@/data/projectAbstracts';
+import { getProjectAbstractById, PROJECT_ABSTRACTS } from '@/data/projectAbstracts';
 import type { Team } from '@/types';
 import { teamMemberCount } from '@/utils';
+
+function teamSearchMatch(t: Team, q: string) {
+  const project = getProjectAbstractById(t.selectedProjectId);
+  const haystack = [
+    t.teamName,
+    t.leaderName,
+    t.leaderEmail,
+    t.college,
+    t.department,
+    t.selectedProjectId,
+    project ? `PS-${String(project.problemNumber).padStart(2, '0')}` : '',
+    project?.title ?? '',
+  ]
+    .join(' ')
+    .toLowerCase();
+  return haystack.includes(q);
+}
+
+const PROBLEM_SELECT = {
+  id: 'problem',
+  label: 'Problem',
+  options: [
+    { label: 'All problems', value: 'all' },
+    { label: 'Not selected', value: 'none' },
+    ...PROJECT_ABSTRACTS.map((p) => ({
+      label: `PS-${String(p.problemNumber).padStart(2, '0')} — ${p.title}`,
+      value: p.id,
+    })),
+  ],
+  test: (t: Team, value: string) => {
+    if (value === 'none') return !t.selectedProjectId;
+    return t.selectedProjectId === value;
+  },
+};
 
 export default function AdminTeams() {
   const { user, teams, teamsLoading, deleteTeam, refreshTeams } = useAuth();
@@ -92,6 +126,26 @@ export default function AdminTeams() {
     { label: 'Submitted', value: 'submitted', test: (t: Team) => t.submissionStatus === 'submitted' },
     { label: 'In Progress', value: 'in_progress', test: (t: Team) => t.submissionStatus === 'in_progress' },
     { label: 'Not Started', value: 'not_started', test: (t: Team) => t.submissionStatus === 'not_started' },
+    { label: 'Problem selected', value: 'has_problem', test: (t: Team) => Boolean(t.selectedProjectId) },
+    { label: 'No problem', value: 'no_problem', test: (t: Team) => !t.selectedProjectId },
+  ];
+
+  const selectFilters = [
+    PROBLEM_SELECT,
+    {
+      id: 'members',
+      label: 'Members',
+      options: [
+        { label: 'All teams', value: 'all' },
+        { label: 'Setup complete', value: 'complete' },
+        { label: 'Setup incomplete', value: 'incomplete' },
+      ],
+      test: (t: Team, value: string) => {
+        if (value === 'complete') return Boolean(t.membersComplete);
+        if (value === 'incomplete') return !t.membersComplete;
+        return true;
+      },
+    },
   ];
 
   return (
@@ -122,9 +176,10 @@ export default function AdminTeams() {
           <DataTable
             columns={columns}
             rows={teams}
-            searchKeys={['teamName', 'leaderName', 'leaderEmail', 'college', 'selectedProjectId']}
-            searchPlaceholder="Search teams, leaders, colleges…"
+            searchMatch={teamSearchMatch}
+            searchPlaceholder="Search teams, leaders, colleges, problems…"
             filters={filters}
+            selectFilters={selectFilters}
             actions={(t) => (
               <>
                 <button onClick={() => setViewTeam(t)} className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-brand-100 hover:text-brand-600 dark:hover:bg-brand-900/30" title="View">

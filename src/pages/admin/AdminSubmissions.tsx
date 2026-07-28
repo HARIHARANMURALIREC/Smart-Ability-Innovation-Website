@@ -6,8 +6,40 @@ import DashboardHeader from '@/components/admin/DashboardHeader';
 import DataTable from '@/components/admin/DataTable';
 import StatusBadge from '@/components/ui/StatusBadge';
 import SubmissionPdfActions from '@/components/admin/SubmissionPdfActions';
-import { getProjectAbstractById } from '@/data/projectAbstracts';
+import { getProjectAbstractById, PROJECT_ABSTRACTS } from '@/data/projectAbstracts';
 import type { Team } from '@/types';
+
+function submissionSearchMatch(t: Team, q: string) {
+  const project = getProjectAbstractById(t.selectedProjectId);
+  const haystack = [
+    t.teamName,
+    t.leaderName,
+    t.pdfName,
+    t.selectedProjectId,
+    project ? `PS-${String(project.problemNumber).padStart(2, '0')}` : '',
+    project?.title ?? '',
+  ]
+    .join(' ')
+    .toLowerCase();
+  return haystack.includes(q);
+}
+
+const PROBLEM_SELECT = {
+  id: 'problem',
+  label: 'Problem',
+  options: [
+    { label: 'All problems', value: 'all' },
+    { label: 'Not selected', value: 'none' },
+    ...PROJECT_ABSTRACTS.map((p) => ({
+      label: `PS-${String(p.problemNumber).padStart(2, '0')} — ${p.title}`,
+      value: p.id,
+    })),
+  ],
+  test: (t: Team, value: string) => {
+    if (value === 'none') return !t.selectedProjectId;
+    return t.selectedProjectId === value;
+  },
+};
 
 export default function AdminSubmissions() {
   const { user, teams } = useAuth();
@@ -101,7 +133,11 @@ export default function AdminSubmissions() {
     { label: 'Submitted', value: 'submitted', test: (t: Team) => t.submissionStatus === 'submitted' },
     { label: 'In Progress', value: 'in_progress', test: (t: Team) => t.submissionStatus === 'in_progress' },
     { label: 'Not Started', value: 'not_started', test: (t: Team) => t.submissionStatus === 'not_started' },
+    { label: 'Has PDF', value: 'has_pdf', test: (t: Team) => Boolean(t.pdfName || t.pdfUrl) },
+    { label: 'No PDF', value: 'no_pdf', test: (t: Team) => !t.pdfName && !t.pdfUrl },
   ];
+
+  const selectFilters = [PROBLEM_SELECT];
 
   return (
     <div className="min-h-screen bg-slate-100 dark:bg-slate-950">
@@ -153,9 +189,10 @@ export default function AdminSubmissions() {
         <DataTable
           columns={columns}
           rows={teams}
-          searchKeys={['teamName', 'leaderName', 'pdfName']}
-          searchPlaceholder="Search submissions…"
+          searchMatch={submissionSearchMatch}
+          searchPlaceholder="Search teams, leaders, problems, PDFs…"
           filters={filters}
+          selectFilters={selectFilters}
           emptyMessage="No submissions match your filters."
         />
       </motion.div>
