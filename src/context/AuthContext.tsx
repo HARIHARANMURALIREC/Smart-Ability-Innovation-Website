@@ -3,6 +3,7 @@ import type { AuthUser, Team, TeamMember } from '@/types';
 import {
   ADMIN_CREDENTIALS,
   STORAGE_KEYS,
+  MAX_TEAMS_PER_PROBLEM,
   loadTeams,
   saveTeams,
   loadUser,
@@ -62,7 +63,7 @@ interface AuthContextValue {
   ) => Promise<{ ok: boolean; message: string; team?: Team }>;
   registerMemberToTeam: (teamId: string, member: TeamMember) => void;
   updateTeamMembers: (teamId: string, members: Team['members']) => void;
-  selectProject: (teamId: string, projectId: string) => void;
+  selectProject: (teamId: string, projectId: string) => Promise<{ ok: boolean; message: string }>;
   uploadPdf: (file: File) => Promise<{ ok: boolean; message: string }>;
   logout: () => void;
   deleteTeam: (teamId: string) => Promise<{ ok: boolean; message: string }>;
@@ -350,7 +351,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     void updateTeamRemote(teamId, { members, membersComplete: true });
   };
 
-  const selectProject: AuthContextValue['selectProject'] = (teamId, projectId) => {
+  const selectProject: AuthContextValue['selectProject'] = async (teamId, projectId) => {
+    const current = teams.find((t) => t.id === teamId);
+    if (!current) return { ok: false, message: 'Team not found.' };
+
+    if (current.selectedProjectId === projectId) {
+      return { ok: true, message: 'Already selected.' };
+    }
+
+    const taken = teams.filter((t) => t.selectedProjectId === projectId).length;
+    if (taken >= MAX_TEAMS_PER_PROBLEM) {
+      return {
+        ok: false,
+        message: `This problem statement is full (maximum ${MAX_TEAMS_PER_PROBLEM} teams). Please choose another.`,
+      };
+    }
+
     setTeams((prev) =>
       prev.map((t) =>
         t.id === teamId
@@ -362,7 +378,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           : t,
       ),
     );
-    void selectProjectRemote(teamId, projectId);
+
+    const { error } = await selectProjectRemote(teamId, projectId);
+    if (error) {
+      // Revert optimistic update if remote rejects (e.g. race to 5)
+      await refreshTeams();
+      return { ok: false, message: error };
+    }
+
+    return { ok: true, message: 'Problem statement selected.' };
   };
 
   const registerMemberToTeam: AuthContextValue['registerMemberToTeam'] = (teamId, member) => {

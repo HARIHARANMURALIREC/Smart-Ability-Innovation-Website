@@ -1,13 +1,17 @@
 import { useState } from 'react';
-import { Check, ChevronDown, ChevronUp } from 'lucide-react';
+import { Check, ChevronDown, ChevronUp, Lock } from 'lucide-react';
 import { ProjectAbstract } from '../data/projectAbstracts';
 import { useAuth } from '../context/AuthContext';
+import { MAX_TEAMS_PER_PROBLEM } from '@/utils';
 
 interface ProjectAbstractCardProps {
   project: ProjectAbstract;
   isSelected?: boolean;
   onSelect?: (projectId: string) => void;
   showSelectButton?: boolean;
+  /** How many teams have already selected this problem */
+  teamsSelected?: number;
+  maxTeams?: number;
 }
 
 export default function ProjectAbstractCard({
@@ -15,11 +19,15 @@ export default function ProjectAbstractCard({
   isSelected = false,
   onSelect,
   showSelectButton = true,
+  teamsSelected = 0,
+  maxTeams = MAX_TEAMS_PER_PROBLEM,
 }: ProjectAbstractCardProps) {
   const { user } = useAuth();
   const [expanded, setExpanded] = useState(false);
 
-  const canSelect = showSelectButton && user?.isLeader === true && !!onSelect;
+  const isLocked = !isSelected && teamsSelected >= maxTeams;
+  const canSelect = showSelectButton && user?.isLeader === true && !!onSelect && !isLocked;
+  const seatsLeft = Math.max(0, maxTeams - teamsSelected);
 
   const getDifficultyColor = (difficulty: string) => {
     switch (difficulty) {
@@ -55,7 +63,9 @@ export default function ProjectAbstractCard({
       className={`rounded-xl border-2 transition-all ${
         isSelected
           ? 'border-brand-500 bg-brand-50/80 shadow-md dark:border-brand-400 dark:bg-brand-950/30'
-          : 'border-slate-200 bg-white hover:border-slate-300 hover:shadow-sm dark:border-slate-700 dark:bg-slate-900'
+          : isLocked
+            ? 'border-slate-200 bg-slate-50 opacity-75 dark:border-slate-700 dark:bg-slate-900/60'
+            : 'border-slate-200 bg-white hover:border-slate-300 hover:shadow-sm dark:border-slate-700 dark:bg-slate-900'
       }`}
     >
       <div className="p-4">
@@ -65,11 +75,16 @@ export default function ProjectAbstractCard({
             className="flex-1 text-left"
             onClick={() => setExpanded((v) => !v)}
           >
-            <div className="flex items-center gap-2 mb-2">
+            <div className="mb-2 flex items-center gap-2">
               <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-brand-500 to-accent-600 text-sm font-bold text-white">
                 {project.problemNumber}
               </span>
               <h3 className="text-lg font-bold text-slate-900 dark:text-white">{project.title}</h3>
+              {isLocked && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-slate-200 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-slate-600 dark:bg-slate-700 dark:text-slate-300">
+                  <Lock className="h-3 w-3" /> Locked
+                </span>
+              )}
             </div>
 
             <div className="mb-3 flex flex-wrap gap-2">
@@ -79,6 +94,16 @@ export default function ProjectAbstractCard({
               <span className={`inline-block rounded-full px-3 py-1 text-xs font-semibold ${getDomainColor(project.domain)}`}>
                 {project.domain}
               </span>
+              <span
+                className={`inline-block rounded-full px-3 py-1 text-xs font-semibold ${
+                  isLocked
+                    ? 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300'
+                    : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
+                }`}
+              >
+                {teamsSelected}/{maxTeams} teams
+                {!isLocked && !isSelected ? ` · ${seatsLeft} left` : ''}
+              </span>
             </div>
 
             <p className="line-clamp-2 text-sm text-slate-600 dark:text-slate-300">
@@ -87,12 +112,16 @@ export default function ProjectAbstractCard({
           </button>
 
           <div className="flex shrink-0 items-center gap-2 self-stretch sm:flex-col sm:items-stretch">
-            {canSelect && (
+            {showSelectButton && user?.isLeader && (
               isSelected ? (
                 <div className="inline-flex min-w-[140px] items-center justify-center gap-1.5 rounded-xl border-2 border-emerald-500 bg-emerald-50 px-4 py-2.5 text-sm font-semibold text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300">
                   <Check className="h-4 w-4" /> Selected
                 </div>
-              ) : (
+              ) : isLocked ? (
+                <div className="inline-flex min-w-[140px] items-center justify-center gap-1.5 rounded-xl border-2 border-slate-300 bg-slate-100 px-4 py-2.5 text-sm font-semibold text-slate-500 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-400">
+                  <Lock className="h-4 w-4" /> Locked
+                </div>
+              ) : canSelect ? (
                 <button
                   type="button"
                   onClick={(e) => {
@@ -103,7 +132,7 @@ export default function ProjectAbstractCard({
                 >
                   Select
                 </button>
-              )
+              ) : null
             )}
 
             <button
@@ -166,6 +195,12 @@ export default function ProjectAbstractCard({
             >
               Select This Project
             </button>
+          )}
+
+          {isLocked && !isSelected && (
+            <p className="rounded-lg bg-slate-100 px-3 py-2 text-center text-sm text-slate-600 dark:bg-slate-800 dark:text-slate-400">
+              This problem is full ({maxTeams}/{maxTeams} teams). Choose another problem statement.
+            </p>
           )}
         </div>
       )}

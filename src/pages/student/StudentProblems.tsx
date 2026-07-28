@@ -6,20 +6,27 @@ import { PROJECT_ABSTRACTS } from '@/data/projectAbstracts';
 import DashboardHeader from '@/components/admin/DashboardHeader';
 import ProjectAbstractsList from '@/components/ProjectAbstractsList';
 import { useStudentTeam } from '@/hooks';
+import { MAX_TEAMS_PER_PROBLEM } from '@/utils';
 
 export default function StudentProblems() {
-  const { user, selectProject } = useAuth();
-  const { success, warning } = useToast();
+  const { user, selectProject, refreshTeams } = useAuth();
+  const { success, warning, error } = useToast();
   const team = useStudentTeam();
 
   if (!user) return null;
 
-  const handleSelectProject = (projectId: string) => {
+  const handleSelectProject = async (projectId: string) => {
     if (!user.isLeader) {
       warning('Leaders only', 'Only team leaders can select projects.');
       return;
     }
-    selectProject(team.id, projectId);
+
+    await refreshTeams();
+    const res = await selectProject(team.id, projectId);
+    if (!res.ok) {
+      error('Cannot select', res.message);
+      return;
+    }
     success('Project selected', 'Your team problem statement has been saved.');
   };
 
@@ -46,7 +53,7 @@ export default function StudentProblems() {
           </div>
           <p className="text-slate-600 dark:text-slate-400">
             {user.isLeader
-              ? 'Select a problem statement for your team to solve during the hackathon.'
+              ? `Select a problem statement for your team. Each problem allows up to ${MAX_TEAMS_PER_PROBLEM} teams.`
               : 'Browse available problem statements. Your team leader will select one for your team.'}
           </p>
 

@@ -277,3 +277,14 @@ export function getProjectAbstractById(id?: string | null) {
   if (!id) return undefined;
   return PROJECT_ABSTRACTS.find((p) => p.id === id);
 }
+
+/** Count how many teams have selected each problem id */
+export function countTeamsPerProblem(teams: { selectedProjectId?: string }[]): Record<string, number> {
+  const counts: Record<string, number> = {};
+  for (const team of teams) {
+    const id = team.selectedProjectId;
+    if (!id) continue;
+    counts[id] = (counts[id] ?? 0) + 1;
+  }
+  return counts;
+}

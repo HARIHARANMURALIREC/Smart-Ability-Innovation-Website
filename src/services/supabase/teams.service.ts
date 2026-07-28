@@ -246,6 +246,7 @@ export async function deleteTeam(teamId: string): Promise<{ error: string | null
 
 /**
  * Update team project selection (does NOT mark PDF as submitted)
+ * Enforces max 5 teams per problem statement.
  */
 export async function selectProject(
   teamId: string,
@@ -254,10 +255,34 @@ export async function selectProject(
   _abstract?: string
 ): Promise<{ team: Team | null; error: string | null }> {
   try {
-    // Selecting a problem moves status to in_progress unless already submitted
     const existing = await getTeamById(teamId);
+    if (existing.error || !existing.team) {
+      return { team: null, error: existing.error ?? 'Team not found' };
+    }
+
+    // Already on this problem — no-op success
+    if (existing.team.selectedProjectId === projectId) {
+      return { team: existing.team, error: null };
+    }
+
+    const { count, error: countError } = await supabase
+      .from('teams')
+      .select('id', { count: 'exact', head: true })
+      .eq('selectedprojectid', projectId);
+
+    if (countError) {
+      return { team: null, error: countError.message };
+    }
+
+    if ((count ?? 0) >= 5) {
+      return {
+        team: null,
+        error: 'This problem statement is full (maximum 5 teams). Please choose another.',
+      };
+    }
+
     const nextStatus =
-      existing.team?.submissionStatus === 'submitted' ? 'submitted' : 'in_progress';
+      existing.team.submissionStatus === 'submitted' ? 'submitted' : 'in_progress';
 
     const { data, error } = await supabase
       .from('teams')
