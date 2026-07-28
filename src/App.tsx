@@ -27,6 +27,7 @@ const AdminDashboard = lazy(() => import('@/pages/admin/AdminDashboard'));
 const AdminTeams = lazy(() => import('@/pages/admin/AdminTeams'));
 const AdminSubmissions = lazy(() => import('@/pages/admin/AdminSubmissions'));
 const AdminAnalytics = lazy(() => import('@/pages/admin/AdminAnalytics'));
+const AdminProblemStats = lazy(() => import('@/pages/admin/AdminProblemStats'));
 const AdminSettings = lazy(() => import('@/pages/admin/AdminSettings'));
 const AdminLoginPage = lazy(() => import('@/pages/admin/AdminLoginPage'));
 
@@ -97,6 +98,7 @@ const router = createBrowserRouter([
           { path: 'dashboard', element: <AdminDashboard /> },
           { path: 'teams', element: <AdminTeams /> },
           { path: 'submissions', element: <AdminSubmissions /> },
+          { path: 'problems', element: <AdminProblemStats /> },
           { path: 'analytics', element: <AdminAnalytics /> },
           { path: 'settings', element: <AdminSettings /> },
         ],

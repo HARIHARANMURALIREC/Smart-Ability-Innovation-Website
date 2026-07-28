@@ -10,6 +10,7 @@ import {
   LogOut,
   Menu,
   X,
+  Lightbulb,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import Avatar from '@/components/ui/Avatar';
@@ -19,6 +20,7 @@ import Logo from '@/components/ui/Logo';
 const NAV = [
   { to: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/admin/teams', label: 'Registered Teams', icon: Users },
+  { to: '/admin/problems', label: 'Problem Statements', icon: Lightbulb },
   { to: '/admin/submissions', label: 'Submissions', icon: FileCheck2 },
   { to: '/admin/analytics', label: 'Analytics', icon: BarChart3 },
   { to: '/admin/settings', label: 'Settings', icon: Settings },

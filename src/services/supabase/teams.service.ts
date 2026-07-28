@@ -6,6 +6,7 @@
  */
 
 import { supabase } from '@/config/supabase';
+import { MAX_TEAMS_PER_PROBLEM } from '@/utils';
 import type { Team, TeamMember, SubmissionStatus } from '@/types';
 
 /**
@@ -274,10 +275,10 @@ export async function selectProject(
       return { team: null, error: countError.message };
     }
 
-    if ((count ?? 0) >= 5) {
+    if ((count ?? 0) >= MAX_TEAMS_PER_PROBLEM) {
       return {
         team: null,
-        error: 'This problem statement is full (maximum 5 teams). Please choose another.',
+        error: `This problem statement is full (maximum ${MAX_TEAMS_PER_PROBLEM} teams). Please choose another.`,
       };
     }
 
