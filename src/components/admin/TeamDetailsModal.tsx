@@ -1,9 +1,10 @@
 import { motion } from 'framer-motion';
-import { Crown, Mail, Building2, GraduationCap, Calendar, FileText, CheckCircle2 } from 'lucide-react';
+import { Crown, Mail, Building2, GraduationCap, Calendar, FileText, CheckCircle2, Lightbulb } from 'lucide-react';
 import Modal from '@/components/ui/Modal';
 import Avatar from '@/components/ui/Avatar';
 import StatusBadge from '@/components/ui/StatusBadge';
 import SubmissionPdfActions from '@/components/admin/SubmissionPdfActions';
+import { getProjectAbstractById } from '@/data/projectAbstracts';
 import type { Team } from '@/types';
 import { teamMemberCount, statusLabel } from '@/utils';
 
@@ -15,6 +16,9 @@ interface Props {
 
 export default function TeamDetailsModal({ open, onClose, team }: Props) {
   if (!team) return null;
+
+  const selectedProblem = getProjectAbstractById(team.selectedProjectId);
+
   return (
     <Modal open={open} onClose={onClose} title={team.teamName} subtitle={`Led by ${team.leaderName}`} size="lg">
       <div className="space-y-5">
@@ -49,6 +53,29 @@ export default function TeamDetailsModal({ open, onClose, team }: Props) {
               </div>
             </div>
           ))}
+        </div>
+
+        <div className="rounded-xl border border-slate-200/60 bg-white/40 p-4 dark:border-slate-700/60 dark:bg-slate-800/30">
+          <div className="flex items-start gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-100 dark:bg-brand-900/30">
+              <Lightbulb className="h-5 w-5 text-brand-600 dark:text-brand-300" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Selected Problem</p>
+              {selectedProblem ? (
+                <>
+                  <p className="mt-1 text-sm font-bold text-slate-900 dark:text-white">
+                    PS-{String(selectedProblem.problemNumber).padStart(2, '0')}: {selectedProblem.title}
+                  </p>
+                  <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                    {selectedProblem.domain} · {selectedProblem.difficulty}
+                  </p>
+                </>
+              ) : (
+                <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">No problem selected yet</p>
+              )}
+            </div>
+          </div>
         </div>
 
         <div>

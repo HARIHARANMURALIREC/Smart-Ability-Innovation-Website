@@ -11,6 +11,7 @@ import { BarChart } from '@/components/admin/Charts';
 import { REGISTRATION_CHART, SUBMISSION_CHART, SAMPLE_ACTIVITIES } from '@/data';
 import { teamMemberCount } from '@/utils';
 import TeamDetailsModal from '@/components/admin/TeamDetailsModal';
+import { getProjectAbstractById } from '@/data/projectAbstracts';
 import type { Team } from '@/types';
 
 export default function AdminDashboard() {
@@ -90,7 +91,15 @@ export default function AdminDashboard() {
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-semibold text-slate-900 dark:text-white">{t.teamName}</p>
-                    <p className="truncate text-xs text-slate-500 dark:text-slate-400">{t.leaderName} · {teamMemberCount(t)} members</p>
+                    <p className="truncate text-xs text-slate-500 dark:text-slate-400">
+                      {t.leaderName} · {teamMemberCount(t)} members
+                      {(() => {
+                        const project = getProjectAbstractById(t.selectedProjectId);
+                        return project
+                          ? ` · PS-${String(project.problemNumber).padStart(2, '0')}`
+                          : ' · No problem';
+                      })()}
+                    </p>
                   </div>
                   <StatusBadge status={t.submissionStatus} size="sm" />
                 </button>

@@ -6,6 +6,7 @@ import DashboardHeader from '@/components/admin/DashboardHeader';
 import DataTable from '@/components/admin/DataTable';
 import StatusBadge from '@/components/ui/StatusBadge';
 import SubmissionPdfActions from '@/components/admin/SubmissionPdfActions';
+import { getProjectAbstractById } from '@/data/projectAbstracts';
 import type { Team } from '@/types';
 
 export default function AdminSubmissions() {
@@ -35,6 +36,24 @@ export default function AdminSubmissions() {
           <Crown className="h-3.5 w-3.5 text-amber-500" /> {t.leaderName}
         </span>
       ),
+    },
+    {
+      key: 'selectedProjectId',
+      label: 'Problem',
+      render: (t: Team) => {
+        const project = getProjectAbstractById(t.selectedProjectId);
+        if (!project) return <span className="text-slate-400">Not selected</span>;
+        return (
+          <div className="max-w-[240px]">
+            <p className="truncate text-sm font-medium text-slate-800 dark:text-slate-100">
+              PS-{String(project.problemNumber).padStart(2, '0')}
+            </p>
+            <p className="truncate text-xs text-slate-500 dark:text-slate-400" title={project.title}>
+              {project.title}
+            </p>
+          </div>
+        );
+      },
     },
     {
       key: 'pdfName',

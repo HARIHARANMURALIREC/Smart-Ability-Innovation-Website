@@ -9,6 +9,7 @@ import DataTable from '@/components/admin/DataTable';
 import StatusBadge from '@/components/ui/StatusBadge';
 import Modal from '@/components/ui/Modal';
 import TeamDetailsModal from '@/components/admin/TeamDetailsModal';
+import { getProjectAbstractById } from '@/data/projectAbstracts';
 import type { Team } from '@/types';
 import { teamMemberCount } from '@/utils';
 
@@ -65,6 +66,24 @@ export default function AdminTeams() {
     { key: 'leaderEmail', label: 'Email', render: (t: Team) => <span className="text-slate-500 dark:text-slate-400">{t.leaderEmail}</span> },
     { key: 'members', label: 'Members', render: (t: Team) => <span className="inline-flex items-center gap-1 text-slate-700 dark:text-slate-200"><UsersIcon className="h-3.5 w-3.5" /> {teamMemberCount(t)}</span> },
     { key: 'college', label: 'College', render: (t: Team) => <span className="text-slate-600 dark:text-slate-300">{t.college}</span> },
+    {
+      key: 'selectedProjectId',
+      label: 'Problem',
+      render: (t: Team) => {
+        const project = getProjectAbstractById(t.selectedProjectId);
+        if (!project) return <span className="text-slate-400">Not selected</span>;
+        return (
+          <div className="max-w-[220px]">
+            <p className="truncate text-sm font-medium text-slate-800 dark:text-slate-100">
+              PS-{String(project.problemNumber).padStart(2, '0')}
+            </p>
+            <p className="truncate text-xs text-slate-500 dark:text-slate-400" title={project.title}>
+              {project.title}
+            </p>
+          </div>
+        );
+      },
+    },
     { key: 'department', label: 'Department', render: (t: Team) => <span className="text-slate-600 dark:text-slate-300">{t.department}</span> },
     { key: 'submissionStatus', label: 'Status', render: (t: Team) => <StatusBadge status={t.submissionStatus} size="sm" /> },
   ];
@@ -103,7 +122,7 @@ export default function AdminTeams() {
           <DataTable
             columns={columns}
             rows={teams}
-            searchKeys={['teamName', 'leaderName', 'leaderEmail', 'college']}
+            searchKeys={['teamName', 'leaderName', 'leaderEmail', 'college', 'selectedProjectId']}
             searchPlaceholder="Search teams, leaders, colleges…"
             filters={filters}
             actions={(t) => (

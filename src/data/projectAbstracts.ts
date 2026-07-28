@@ -272,3 +272,8 @@ export const PROJECT_ABSTRACTS: ProjectAbstract[] = [
     difficulty: 'Advanced',
   },
 ];
+
+export function getProjectAbstractById(id?: string | null) {
+  if (!id) return undefined;
+  return PROJECT_ABSTRACTS.find((p) => p.id === id);
+}
