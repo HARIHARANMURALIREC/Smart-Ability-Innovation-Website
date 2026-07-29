@@ -64,11 +64,11 @@ export default function Hero() {
             transition={{ duration: 0.6, delay: 0.5 }}
             className="flex flex-wrap justify-center gap-3"
           >
-            <Button to="/register" size="lg" icon={Rocket} iconRight={ArrowRight}>
-              Register Team
-            </Button>
-            <Button to="/student-login" size="lg" variant="secondary" icon={Users}>
+            <Button to="/student-login" size="lg" icon={Users} iconRight={ArrowRight}>
               Student Login
+            </Button>
+            <Button to="/about" size="lg" variant="secondary" icon={Rocket}>
+              Learn More
             </Button>
           </motion.div>
 
@@ -79,8 +79,8 @@ export default function Hero() {
             transition={{ duration: 0.6, delay: 0.6 }}
             className="flex flex-wrap items-center justify-center gap-2 sm:gap-3 text-xs sm:text-sm"
           >
-            <div className="flex items-center gap-2 rounded-full bg-brand-50 px-3 sm:px-4 py-1.5 font-semibold text-brand-700 ring-1 ring-brand-200 dark:bg-brand-900/30 dark:text-brand-300 dark:ring-brand-700/40">
-              � Registration: 25-29 July
+            <div className="flex items-center gap-2 rounded-full bg-rose-50 px-3 sm:px-4 py-1.5 font-semibold text-rose-700 ring-1 ring-rose-200 dark:bg-rose-900/30 dark:text-rose-300 dark:ring-rose-700/40">
+              Registrations Closed
             </div>
             <div className="flex items-center gap-2 rounded-full bg-amber-50 px-3 sm:px-4 py-1.5 font-semibold text-amber-700 ring-1 ring-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:ring-amber-700/40">
               ⚡ Challenge: 01 August 2026

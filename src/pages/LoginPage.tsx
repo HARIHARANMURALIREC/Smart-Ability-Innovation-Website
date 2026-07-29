@@ -140,11 +140,8 @@ export default function LoginPage(_props: LoginProps) {
           </form>
 
           <div className="mt-6 space-y-2 text-center text-sm text-slate-500 dark:text-slate-400">
-            <p>
-              Don't have a team?{' '}
-              <Link to="/register" className="font-semibold text-brand-600 hover:underline dark:text-brand-300">
-                Register here
-              </Link>
+            <p className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-rose-700 dark:border-rose-800/40 dark:bg-rose-950/30 dark:text-rose-300">
+              New team registrations are closed. Members can still join an existing team.
             </p>
             <p>
               Join existing team?{' '}

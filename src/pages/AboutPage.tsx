@@ -263,12 +263,12 @@ export default function AboutPage() {
           <div className="glass-card relative overflow-hidden p-10 text-center sm:p-14">
             <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-brand-500/10 to-accent-500/10" />
             <div className="relative">
-              <h2 className="font-display text-3xl font-bold text-slate-900 dark:text-white sm:text-4xl">Start your innovation journey</h2>
+              <h2 className="font-display text-3xl font-bold text-slate-900 dark:text-white sm:text-4xl">Registrations are closed</h2>
               <p className="mx-auto mt-3 max-w-lg text-slate-600 dark:text-slate-400">
-                Register your team and help build an inclusive future through assistive technology.
+                New team registrations are closed. Already registered teams can sign in to manage submissions.
               </p>
               <div className="mt-6 flex justify-center">
-                <Button to="/register" size="lg" icon={Users}>Register Now</Button>
+                <Button to="/student-login" size="lg" icon={UserCheck}>Student Login</Button>
               </div>
             </div>
           </div>

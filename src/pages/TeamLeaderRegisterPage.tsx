@@ -5,8 +5,9 @@ import { Trophy, UserPlus, Trash2, ArrowRight, ArrowLeft, CheckCircle2, Graduati
 import Button from '@/components/ui/Button';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/context/ToastContext';
-import { DEPARTMENTS, YEARS, MAX_TEAM_MEMBERS, emptyMember, isValidEmail, isValidMobile, passwordStrength, isDuplicateEmail } from '@/utils';
+import { DEPARTMENTS, YEARS, MAX_TEAM_MEMBERS, emptyMember, isValidEmail, isValidMobile, passwordStrength, isDuplicateEmail, REGISTRATION_OPEN } from '@/utils';
 import type { Team, TeamMember } from '@/types';
+import RegistrationClosed from '@/components/RegistrationClosed';
 
 interface FormState {
   teamName: string;
@@ -39,6 +40,10 @@ export default function TeamLeaderRegisterPage() {
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
+
+  if (!REGISTRATION_OPEN) {
+    return <RegistrationClosed title="Team Registration Closed" />;
+  }
 
   const update = (key: keyof FormState, value: string) => {
     setForm((f) => ({ ...f, [key]: value }));

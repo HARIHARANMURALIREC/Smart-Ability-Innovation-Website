@@ -12,6 +12,9 @@ export const MAX_TEAM_MEMBERS = 4;
 /** Max teams that may select the same problem statement */
 export const MAX_TEAMS_PER_PROBLEM = 10;
 
+/** When false, new team leader registrations are blocked (member joining stays open) */
+export const REGISTRATION_OPEN = false;
+
 export const ADMIN_CREDENTIALS = {
   email: 'admin@rec.com',
   password: 'admin@123',

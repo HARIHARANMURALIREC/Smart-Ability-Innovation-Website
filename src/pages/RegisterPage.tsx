@@ -2,10 +2,16 @@ import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Trophy, Users, ArrowRight, RotateCcw } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import RegistrationClosed from '@/components/RegistrationClosed';
+import { REGISTRATION_OPEN } from '@/utils';
 
 export default function RegisterPage() {
   const navigate = useNavigate();
   const { resetToSeedData } = useAuth();
+
+  if (!REGISTRATION_OPEN) {
+    return <RegistrationClosed />;
+  }
 
   const handleClearData = () => {
     if (confirm('Are you sure you want to clear all saved team data? This cannot be undone.')) {

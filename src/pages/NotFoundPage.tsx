@@ -20,7 +20,7 @@ export default function NotFoundPage() {
         </p>
         <div className="mt-7 flex flex-wrap justify-center gap-3">
           <Button to="/" icon={Home}>Back Home</Button>
-          <Button to="/register" variant="secondary" icon={ArrowLeft}>Register a Team</Button>
+          <Button to="/student-login" variant="secondary" icon={ArrowLeft}>Student Login</Button>
         </div>
       </motion.div>
     </div>

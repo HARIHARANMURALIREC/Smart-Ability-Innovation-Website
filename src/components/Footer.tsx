@@ -28,7 +28,7 @@ export default function Footer() {
               {[
                 { label: 'Home', to: '/' },
                 { label: 'About', to: '/about' },
-                { label: 'Register', to: '/register' },
+                { label: 'Member Registration', to: '/member-register' },
                 { label: 'Student Login', to: '/student-login' },
               ].map((l) => (
                 <li key={l.to}>

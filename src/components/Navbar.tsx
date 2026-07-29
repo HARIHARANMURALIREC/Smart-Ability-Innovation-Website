@@ -139,12 +139,20 @@ export default function Navbar() {
               </AnimatePresence>
             </div>
           ) : (
-            <Link
-              to="/register"
-              className="hidden rounded-xl bg-gradient-to-r from-brand-600 to-accent-600 px-4 py-2 text-sm font-semibold text-white shadow-glow transition-transform hover:scale-105 sm:inline-flex"
-            >
-              Get Started
-            </Link>
+            <>
+              <Link
+                to="/member-register"
+                className="hidden rounded-xl border border-slate-200 bg-white/60 px-4 py-2 text-sm font-semibold text-slate-700 transition-colors hover:border-brand-400 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-200 sm:inline-flex"
+              >
+                Join Team
+              </Link>
+              <Link
+                to="/student-login"
+                className="hidden rounded-xl bg-gradient-to-r from-brand-600 to-accent-600 px-4 py-2 text-sm font-semibold text-white shadow-glow transition-transform hover:scale-105 sm:inline-flex"
+              >
+                Student Login
+              </Link>
+            </>
           )}
 
           <button

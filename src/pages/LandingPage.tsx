@@ -3,7 +3,7 @@ import Hero from '@/components/sections/Hero';
 import StatsBand from '@/components/sections/StatsBand';
 import Timeline from '@/components/sections/Timeline';
 import Button from '@/components/ui/Button';
-import { Rocket, ShieldCheck, Trophy, ArrowRight, Brain, Cpu } from 'lucide-react';
+import { ShieldCheck, Trophy, ArrowRight, Brain, Cpu, Users } from 'lucide-react';
 
 function AboutSection() {
   const cards = [
@@ -32,7 +32,7 @@ function AboutSection() {
               Scheduled on <strong className="text-slate-800 dark:text-slate-200">01 August 2026</strong>, the event is entirely focused on two tracks: <strong className="text-slate-800 dark:text-slate-200">AI-powered software applications</strong> and <strong className="text-slate-800 dark:text-slate-200">hardware-based assistive devices</strong>. Teams pick one of <strong className="text-slate-800 dark:text-slate-200">11 real-world problem statements</strong> and compete for a prize pool of <strong className="text-slate-800 dark:text-slate-200">₹1,00,000</strong>.
             </p>
             <div className="mt-7 flex flex-wrap gap-3">
-              <Button to="/register" icon={Rocket}>Register your team</Button>
+              <Button to="/student-login" icon={Users}>Student Login</Button>
               <Button to="/about" variant="secondary" iconRight={ArrowRight}>Learn more</Button>
             </div>
           </motion.div>
@@ -84,11 +84,11 @@ function CTASection() {
               Ready to build something <span className="gradient-text">impactful?</span>
             </h2>
             <p className="mx-auto mt-4 max-w-xl text-slate-600 dark:text-slate-400">
-              Register your team for SmartAbility 2026 and help build an inclusive future through assistive technology.
+              Registrations for SmartAbility 2026 are now closed. Already registered teams can sign in to continue.
             </p>
             <div className="mt-7 flex flex-wrap justify-center gap-3">
-              <Button to="/register" size="lg" icon={Rocket}>Register Team</Button>
-              <Button to="/student-login" size="lg" variant="secondary">Student Login</Button>
+              <Button to="/student-login" size="lg" icon={Users}>Student Login</Button>
+              <Button to="/about" size="lg" variant="secondary">Learn More</Button>
             </div>
           </div>
         </motion.div>

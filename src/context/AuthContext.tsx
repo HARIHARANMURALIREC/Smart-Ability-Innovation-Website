@@ -4,6 +4,7 @@ import {
   ADMIN_CREDENTIALS,
   STORAGE_KEYS,
   MAX_TEAMS_PER_PROBLEM,
+  REGISTRATION_OPEN,
   loadTeams,
   saveTeams,
   loadUser,
@@ -249,6 +250,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const registerTeam: AuthContextValue['registerTeam'] = async (data) => {
     try {
       logger.info('registerTeam called with data:', data);
+
+      if (!REGISTRATION_OPEN) {
+        return { ok: false, message: 'Registrations are closed. New teams cannot be registered.' };
+      }
 
       if (!data.teamName || !data.leaderName || !data.leaderEmail || !data.password) {
         return { ok: false, message: 'Missing required fields' };

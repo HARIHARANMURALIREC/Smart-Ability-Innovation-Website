@@ -142,6 +142,6 @@ export const SAMPLE_NOTIFICATIONS: AppNotification[] = [
 export const NAV_LINKS = [
   { label: 'Home', to: '/' },
   { label: 'About', to: '/about' },
-  { label: 'Register', to: '/register' },
+  { label: 'Member Registration', to: '/member-register' },
   { label: 'Student Login', to: '/student-login' },
 ];
