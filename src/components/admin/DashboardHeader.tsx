@@ -24,7 +24,7 @@ export default function DashboardHeader({ title, subtitle, breadcrumbs, actions 
           </div>
         )}
 
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
+        <div className="flex items-start justify-between gap-3 sm:items-center sm:gap-6">
           <div className="min-w-0 flex-1">
             <h1 className="font-display text-xl font-bold text-slate-900 dark:text-white sm:text-2xl">
               {title}
@@ -34,9 +34,11 @@ export default function DashboardHeader({ title, subtitle, breadcrumbs, actions 
             )}
           </div>
 
-          <div className="flex shrink-0 items-center gap-2 self-start sm:self-center">
+          <div className="flex shrink-0 items-center gap-2">
             {actions}
-            <ThemeToggle />
+            <div className="hidden lg:block">
+              <ThemeToggle />
+            </div>
             <NotificationPanel />
             <div className="hidden items-center gap-2 rounded-xl border border-slate-200 bg-white/60 py-1 pl-1 pr-3 dark:border-slate-700 dark:bg-slate-800/60 sm:flex">
               <Avatar name={user?.name ?? 'User'} size="sm" />

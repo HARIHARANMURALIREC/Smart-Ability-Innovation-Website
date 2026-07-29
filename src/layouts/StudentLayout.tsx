@@ -21,7 +21,7 @@ export default function StudentLayout() {
   }
 
   return (
-    <div className="relative flex min-h-screen bg-slate-100 dark:bg-black">
+    <div className="relative flex min-h-screen flex-col bg-slate-100 dark:bg-black lg:flex-row">
       <StudentSidebar />
       <div className="relative z-10 flex min-w-0 flex-1 flex-col">
         <div key={location.pathname} className="min-w-0 flex-1 animate-fade-in">

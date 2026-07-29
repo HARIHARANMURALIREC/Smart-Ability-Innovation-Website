@@ -119,7 +119,7 @@ export default function AdminSidebar() {
 
   return (
     <>
-      <div className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-slate-200/60 bg-white/80 px-4 backdrop-blur-xl dark:border-slate-800/60 dark:bg-black/90 lg:hidden">
+      <div className="sticky top-0 z-30 flex h-16 w-full shrink-0 items-center justify-between border-b border-slate-200/60 bg-white/80 px-4 backdrop-blur-xl dark:border-slate-800/60 dark:bg-black/90 lg:hidden">
         <Link to="/admin/dashboard" className="flex items-center gap-2">
           <Logo size={34} />
         </Link>
