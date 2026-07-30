@@ -9,10 +9,10 @@ import DataTable from '@/components/admin/DataTable';
 import StatusBadge from '@/components/ui/StatusBadge';
 import Modal from '@/components/ui/Modal';
 import TeamDetailsModal from '@/components/admin/TeamDetailsModal';
+import ExportTeamsModal from '@/components/admin/ExportTeamsModal';
 import { getProjectAbstractById, PROJECT_ABSTRACTS } from '@/data/projectAbstracts';
 import type { Team } from '@/types';
 import { teamMemberCount } from '@/utils';
-import { exportTeamsToExcel } from '@/utils/exportTeamsExcel';
 
 function teamSearchMatch(t: Team, q: string) {
   const project = getProjectAbstractById(t.selectedProjectId);
@@ -55,6 +55,7 @@ export default function AdminTeams() {
   const [deleteTeamState, setDeleteTeamState] = useState<Team | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
 
   useEffect(() => {
     void refreshTeams();
@@ -70,9 +71,8 @@ export default function AdminTeams() {
     success('Teams refreshed', 'Loaded the latest registrations from the database.');
   };
 
-  const handleExportExcel = async () => {
-    await exportTeamsToExcel(teams);
-    success('Export started', 'Your Excel file is downloading.');
+  const handleExportExcel = () => {
+    setExportOpen(true);
   };
 
   const confirmDelete = async () => {
@@ -212,6 +212,13 @@ export default function AdminTeams() {
       </motion.div>
 
       <TeamDetailsModal open={!!viewTeam} onClose={() => setViewTeam(null)} team={viewTeam} />
+
+      <ExportTeamsModal
+        open={exportOpen}
+        onClose={() => setExportOpen(false)}
+        teams={teams}
+        onExported={(count) => success('Export started', `Downloading Excel with ${count} teams.`)}
+      />
 
       <Modal open={!!deleteTeamState} onClose={() => setDeleteTeamState(null)} title="Delete Team?" size="sm">
         <p className="text-sm text-slate-600 dark:text-slate-300">

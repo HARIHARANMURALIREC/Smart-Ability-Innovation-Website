@@ -1,6 +1,55 @@
-import type { Team } from '@/types';
+import type { Team, SubmissionStatus } from '@/types';
 import { getProjectAbstractById, PROJECT_ABSTRACTS } from '@/data/projectAbstracts';
 import { statusLabel, teamMemberCount } from '@/utils';
+
+export interface TeamExportFilters {
+  submissionStatus: 'all' | SubmissionStatus;
+  problemStatement: 'all' | 'none' | string;
+  membersSetup: 'all' | 'complete' | 'incomplete';
+  department: 'all' | string;
+  pdfSubmitted: 'all' | 'yes' | 'no';
+}
+
+export const DEFAULT_TEAM_EXPORT_FILTERS: TeamExportFilters = {
+  submissionStatus: 'all',
+  problemStatement: 'all',
+  membersSetup: 'all',
+  department: 'all',
+  pdfSubmitted: 'all',
+};
+
+export function filterTeamsForExport(teams: Team[], filters: TeamExportFilters): Team[] {
+  return teams.filter((team) => {
+    if (filters.submissionStatus !== 'all' && team.submissionStatus !== filters.submissionStatus) {
+      return false;
+    }
+
+    if (filters.problemStatement === 'none' && team.selectedProjectId) return false;
+    if (
+      filters.problemStatement !== 'all' &&
+      filters.problemStatement !== 'none' &&
+      team.selectedProjectId !== filters.problemStatement
+    ) {
+      return false;
+    }
+
+    if (filters.membersSetup === 'complete' && !team.membersComplete) return false;
+    if (filters.membersSetup === 'incomplete' && team.membersComplete) return false;
+
+    if (filters.department !== 'all' && team.department !== filters.department) return false;
+
+    if (filters.pdfSubmitted === 'yes' && !team.pdfName) return false;
+    if (filters.pdfSubmitted === 'no' && team.pdfName) return false;
+
+    return true;
+  });
+}
+
+export function getUniqueDepartments(teams: Team[]): string[] {
+  return [...new Set(teams.map((t) => t.department).filter(Boolean))].sort((a, b) =>
+    a.localeCompare(b),
+  );
+}
 
 function formatDate(value: string | null | undefined): string {
   if (!value) return '';
@@ -50,13 +99,32 @@ function buildProblemSummaryRows(teams: Team[]) {
   });
 }
 
-export async function exportTeamsToExcel(teams: Team[], filename?: string) {
+export async function exportTeamsToExcel(
+  teams: Team[],
+  options?: {
+    filename?: string;
+    filters?: TeamExportFilters;
+  },
+) {
+  const filters = options?.filters ?? DEFAULT_TEAM_EXPORT_FILTERS;
+  const filteredTeams = filterTeamsForExport(teams, filters);
+
   const XLSX = await import('xlsx');
-  const teamRows = buildTeamsExcelRows(teams);
-  const summaryRows = buildProblemSummaryRows(teams);
+  const teamRows = buildTeamsExcelRows(filteredTeams);
+  const summaryRows = buildProblemSummaryRows(filteredTeams);
 
   const teamsSheet = XLSX.utils.json_to_sheet(teamRows);
   const summarySheet = XLSX.utils.json_to_sheet(summaryRows);
+
+  if (teamRows.length > 0) {
+    const lastCol = XLSX.utils.encode_col(Object.keys(teamRows[0]).length - 1);
+    teamsSheet['!autofilter'] = { ref: `A1:${lastCol}${teamRows.length + 1}` };
+  }
+
+  if (summaryRows.length > 0) {
+    const lastCol = XLSX.utils.encode_col(Object.keys(summaryRows[0]).length - 1);
+    summarySheet['!autofilter'] = { ref: `A1:${lastCol}${summaryRows.length + 1}` };
+  }
 
   teamsSheet['!cols'] = [
     { wch: 6 },
@@ -94,5 +162,17 @@ export async function exportTeamsToExcel(teams: Team[], filename?: string) {
   XLSX.utils.book_append_sheet(workbook, summarySheet, 'Problem Summary');
 
   const date = new Date().toISOString().slice(0, 10);
-  XLSX.writeFile(workbook, filename ?? `registered-teams-problems-${date}.xlsx`);
+  const suffix =
+    filters.submissionStatus !== 'all' ||
+    filters.problemStatement !== 'all' ||
+    filters.membersSetup !== 'all' ||
+    filters.department !== 'all' ||
+    filters.pdfSubmitted !== 'all'
+      ? '-filtered'
+      : '';
+
+  XLSX.writeFile(
+    workbook,
+    options?.filename ?? `registered-teams-problems-${date}${suffix}.xlsx`,
+  );
 }

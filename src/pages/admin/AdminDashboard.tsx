@@ -4,21 +4,24 @@ import { motion } from 'framer-motion';
 import { Users, GraduationCap, FileCheck2, Clock, ArrowRight, Activity as ActivityIcon, Download } from 'lucide-react';
 import { getIcon } from '@/utils/icons';
 import { useAuth } from '@/context/AuthContext';
+import { useToast } from '@/context/ToastContext';
 import DashboardHeader from '@/components/admin/DashboardHeader';
 import StatCard from '@/components/ui/StatCard';
 import StatusBadge from '@/components/ui/StatusBadge';
 import { BarChart } from '@/components/admin/Charts';
 import { REGISTRATION_CHART, SUBMISSION_CHART, SAMPLE_ACTIVITIES } from '@/data';
 import { teamMemberCount } from '@/utils';
-import { exportTeamsToExcel } from '@/utils/exportTeamsExcel';
 import TeamDetailsModal from '@/components/admin/TeamDetailsModal';
+import ExportTeamsModal from '@/components/admin/ExportTeamsModal';
 import { getProjectAbstractById } from '@/data/projectAbstracts';
 import type { Team } from '@/types';
 
 export default function AdminDashboard() {
   const { user, teams, refreshTeams } = useAuth();
+  const { success } = useToast();
   const navigate = useNavigate();
   const [selected, setSelected] = useState<Team | null>(null);
+  const [exportOpen, setExportOpen] = useState(false);
 
   useEffect(() => {
     void refreshTeams();
@@ -33,8 +36,8 @@ export default function AdminDashboard() {
 
   const recentTeams = teams.slice(0, 5);
 
-  const handleExportExcel = async () => {
-    await exportTeamsToExcel(teams);
+  const handleExportExcel = () => {
+    setExportOpen(true);
   };
 
   return (
@@ -156,6 +159,13 @@ export default function AdminDashboard() {
       </div>
 
       <TeamDetailsModal open={!!selected} onClose={() => setSelected(null)} team={selected} />
+
+      <ExportTeamsModal
+        open={exportOpen}
+        onClose={() => setExportOpen(false)}
+        teams={teams}
+        onExported={(count) => success('Export started', `Downloading Excel with ${count} teams.`)}
+      />
     </div>
   );
 }

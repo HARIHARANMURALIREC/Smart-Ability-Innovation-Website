@@ -7,9 +7,9 @@
 -- 1) Store public URL of uploaded PDF on teams
 ALTER TABLE teams ADD COLUMN IF NOT EXISTS pdfurl TEXT;
 
--- 2) Public bucket for team PDF abstracts (max 500 KB)
+-- 2) Public bucket for team PDF abstracts (max 10 MB)
 INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
-VALUES ('submissions', 'submissions', true, 524288, ARRAY['application/pdf']::text[])
+VALUES ('submissions', 'submissions', true, 10485760, ARRAY['application/pdf']::text[])
 ON CONFLICT (id) DO UPDATE SET
   public = EXCLUDED.public,
   file_size_limit = EXCLUDED.file_size_limit,

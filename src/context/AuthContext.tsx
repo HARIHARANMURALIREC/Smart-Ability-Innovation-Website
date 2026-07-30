@@ -446,9 +446,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const { publicUrl, error: uploadError } = await uploadTeamPdf(user.teamId, file);
       if (uploadError || !publicUrl) {
         logger.error('PDF storage upload failed:', uploadError);
+        const isSizeLimit =
+          typeof uploadError === 'string' &&
+          /maximum allowed size|exceeded.*size|payload too large/i.test(uploadError);
         return {
           ok: false,
-          message: uploadError || 'Could not upload PDF. Create the submissions storage bucket in Supabase.',
+          message: isSizeLimit
+            ? `File is too large for storage (max ${MAX_SUBMISSION_FILE_SIZE_MB} MB). Ask admin to run STORAGE_INCREASE_FILE_LIMIT.sql in Supabase.`
+            : uploadError || 'Could not upload PDF. Create the submissions storage bucket in Supabase.',
         };
       }
 
