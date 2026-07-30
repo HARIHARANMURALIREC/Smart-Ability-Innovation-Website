@@ -4,6 +4,8 @@ import {
   ADMIN_CREDENTIALS,
   STORAGE_KEYS,
   MAX_TEAMS_PER_PROBLEM,
+  MAX_SUBMISSION_FILE_SIZE_BYTES,
+  MAX_SUBMISSION_FILE_SIZE_MB,
   REGISTRATION_OPEN,
   loadTeams,
   saveTeams,
@@ -432,6 +434,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const team = teams.find((t) => t.id === user.teamId);
       if (!team?.selectedProjectId) {
         return { ok: false, message: 'Select a problem statement before uploading.' };
+      }
+
+      if (file.size > MAX_SUBMISSION_FILE_SIZE_BYTES) {
+        return {
+          ok: false,
+          message: `File size must be less than ${MAX_SUBMISSION_FILE_SIZE_MB} MB.`,
+        };
       }
 
       const { publicUrl, error: uploadError } = await uploadTeamPdf(user.teamId, file);

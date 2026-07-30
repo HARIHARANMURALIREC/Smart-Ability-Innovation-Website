@@ -15,6 +15,10 @@ export const MAX_TEAMS_PER_PROBLEM = 15;
 /** When false, new team leader registrations are blocked (member joining stays open) */
 export const REGISTRATION_OPEN = false;
 
+/** Max PDF submission file size in megabytes */
+export const MAX_SUBMISSION_FILE_SIZE_MB = Number(import.meta.env.VITE_MAX_FILE_SIZE_MB) || 10;
+export const MAX_SUBMISSION_FILE_SIZE_BYTES = MAX_SUBMISSION_FILE_SIZE_MB * 1024 * 1024;
+
 export const ADMIN_CREDENTIALS = {
   email: 'admin@rec.com',
   password: 'admin@123',

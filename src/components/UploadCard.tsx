@@ -4,9 +4,7 @@ import { FileUp, FileText, CheckCircle2, UploadCloud, AlertCircle, Lock, Downloa
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/context/ToastContext';
 import StatusBadge from '@/components/ui/StatusBadge';
-
-const MAX_FILE_SIZE_BYTES = 500 * 1024; // 500 KB
-const MAX_FILE_SIZE_MB = (MAX_FILE_SIZE_BYTES / (1024 * 1024)).toFixed(1);
+import { MAX_SUBMISSION_FILE_SIZE_BYTES, MAX_SUBMISSION_FILE_SIZE_MB } from '@/utils';
 
 export default function UploadCard() {
   const { user, teams, uploadPdf } = useAuth();
@@ -46,10 +44,10 @@ export default function UploadCard() {
       return;
     }
 
-    if (file.size > MAX_FILE_SIZE_BYTES) {
+    if (file.size > MAX_SUBMISSION_FILE_SIZE_BYTES) {
       error(
         'File too large',
-        `Maximum file size is ${MAX_FILE_SIZE_MB} MB. Your file is ${formatFileSize(file.size)}.`,
+        `Maximum file size is ${MAX_SUBMISSION_FILE_SIZE_MB} MB. Your file is ${formatFileSize(file.size)}.`,
       );
       e.target.value = '';
       setSelectedFile(null);
@@ -70,10 +68,10 @@ export default function UploadCard() {
       return;
     }
 
-    if (selectedFile.size > MAX_FILE_SIZE_BYTES) {
+    if (selectedFile.size > MAX_SUBMISSION_FILE_SIZE_BYTES) {
       error(
         'File too large',
-        `Maximum file size is ${MAX_FILE_SIZE_MB} MB. Your file is ${formatFileSize(selectedFile.size)}.`,
+        `Maximum file size is ${MAX_SUBMISSION_FILE_SIZE_MB} MB. Your file is ${formatFileSize(selectedFile.size)}.`,
       );
       return;
     }
@@ -191,7 +189,7 @@ export default function UploadCard() {
             <p className="mt-2 text-sm font-semibold text-slate-700 dark:text-slate-200">
               {selectedFile ? selectedFile.name : 'Choose File'}
             </p>
-            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">PDF files only (max {MAX_FILE_SIZE_MB} MB)</p>
+            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">PDF files only (max {MAX_SUBMISSION_FILE_SIZE_MB} MB)</p>
           </div>
 
           <AnimatePresence>
