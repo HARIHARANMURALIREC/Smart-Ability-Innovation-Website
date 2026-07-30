@@ -6,7 +6,7 @@ import { PROJECT_ABSTRACTS } from '@/data/projectAbstracts';
 import DashboardHeader from '@/components/admin/DashboardHeader';
 import ProjectAbstractsList from '@/components/ProjectAbstractsList';
 import { useStudentTeam } from '@/hooks';
-import { MAX_TEAMS_PER_PROBLEM } from '@/utils';
+import { MAX_TEAMS_PER_PROBLEM, PS_SELECTION_OPEN } from '@/utils';
 
 export default function StudentProblems() {
   const { user, selectProject, refreshTeams } = useAuth();
@@ -18,6 +18,11 @@ export default function StudentProblems() {
   const handleSelectProject = async (projectId: string) => {
     if (!user.isLeader) {
       warning('Leaders only', 'Only team leaders can select projects.');
+      return;
+    }
+
+    if (!PS_SELECTION_OPEN && !team.selectedProjectId) {
+      warning('Selection closed', 'Problem statement selection is closed. New selections are no longer accepted.');
       return;
     }
 
@@ -43,7 +48,11 @@ export default function StudentProblems() {
     <div className="min-h-screen">
       <DashboardHeader
         title="Problem Statements"
-        subtitle="Choose a project for your team to solve"
+        subtitle={
+          PS_SELECTION_OPEN
+            ? 'Choose a project for your team to solve'
+            : 'Problem statement selection is closed'
+        }
         breadcrumbs={[
           { label: 'Student', to: '/student/dashboard' },
           { label: 'Problem Statements' },
@@ -60,9 +69,22 @@ export default function StudentProblems() {
             {user.isLeader
               ? team.selectedProjectId
                 ? `Your team has selected a problem statement. The selection is locked and cannot be changed.`
-                : `Select a problem statement for your team. Each problem allows up to ${MAX_TEAMS_PER_PROBLEM} teams. Choose carefully — once selected, it cannot be changed.`
+                : PS_SELECTION_OPEN
+                  ? `Select a problem statement for your team. Each problem allows up to ${MAX_TEAMS_PER_PROBLEM} teams. Choose carefully — once selected, it cannot be changed.`
+                  : `Problem statement selection is closed. Teams that have not selected a PS can no longer choose one.`
               : 'Browse available problem statements. Your team leader will select one for your team.'}
           </p>
+
+          {!PS_SELECTION_OPEN && !team.selectedProjectId && (
+            <div className="rounded-lg border-2 border-rose-300 bg-rose-50 p-4 dark:border-rose-500/40 dark:bg-rose-500/10">
+              <p className="text-sm font-semibold text-rose-900 dark:text-rose-200">
+                Problem statement selection is closed
+              </p>
+              <p className="mt-1 text-sm text-rose-700 dark:text-rose-300">
+                New selections are no longer accepted. Contact the organisers if you need help.
+              </p>
+            </div>
+          )}
 
           {selectedProject && user.isLeader && (
             <div className="rounded-lg border-2 border-green-400 bg-green-50 p-4 dark:border-green-500/40 dark:bg-green-500/10">

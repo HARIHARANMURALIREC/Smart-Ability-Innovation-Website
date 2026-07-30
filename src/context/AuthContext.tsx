@@ -7,6 +7,7 @@ import {
   MAX_SUBMISSION_FILE_SIZE_BYTES,
   MAX_SUBMISSION_FILE_SIZE_MB,
   REGISTRATION_OPEN,
+  PS_SELECTION_OPEN,
   loadTeams,
   saveTeams,
   loadUser,
@@ -370,6 +371,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return {
         ok: false,
         message: 'Your team has already selected a problem statement. The selection cannot be changed.',
+      };
+    }
+
+    if (!PS_SELECTION_OPEN) {
+      return {
+        ok: false,
+        message: 'Problem statement selection is closed. New selections are no longer accepted.',
       };
     }
 

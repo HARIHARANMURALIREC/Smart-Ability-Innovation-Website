@@ -3,7 +3,7 @@ import { Search, Lock } from 'lucide-react';
 import { PROJECT_ABSTRACTS, countTeamsPerProblem } from '../data/projectAbstracts';
 import ProjectAbstractCard from './ProjectAbstractCard';
 import { useAuth } from '../context/AuthContext';
-import { MAX_TEAMS_PER_PROBLEM } from '@/utils';
+import { MAX_TEAMS_PER_PROBLEM, PS_SELECTION_OPEN } from '@/utils';
 
 interface ProjectAbstractsListProps {
   selectedProjectId?: string;
@@ -25,6 +25,7 @@ export default function ProjectAbstractsList({
   const [selectedDifficulty, setSelectedDifficulty] = useState('all');
 
   const selectionCounts = useMemo(() => countTeamsPerProblem(teams), [teams]);
+  const selectionClosed = !PS_SELECTION_OPEN && !selectedProjectId;
 
   const domains = useMemo(
     () => ['all', ...new Set(PROJECT_ABSTRACTS.map((p) => p.domain))],
@@ -71,6 +72,12 @@ export default function ProjectAbstractsList({
           <>
             {' '}
             Your team&apos;s selection is <strong>locked</strong> and cannot be changed.
+          </>
+        )}
+        {selectionClosed && (
+          <>
+            {' '}
+            New problem statement selection is <strong>closed</strong>.
           </>
         )}
       </div>
@@ -141,7 +148,7 @@ export default function ProjectAbstractsList({
               showSelectButton={showSelectButton}
               teamsSelected={selectionCounts[project.id] ?? 0}
               maxTeams={MAX_TEAMS_PER_PROBLEM}
-              selectionLocked={Boolean(selectedProjectId)}
+              selectionLocked={Boolean(selectedProjectId) || !PS_SELECTION_OPEN}
             />
           ))
         ) : (

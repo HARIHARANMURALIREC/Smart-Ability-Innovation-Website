@@ -36,6 +36,9 @@ export const MAX_TEAMS_PER_PROBLEM = 15;
 /** When false, new team leader registrations are blocked (member joining stays open) */
 export const REGISTRATION_OPEN = false;
 
+/** When false, teams cannot newly select a problem statement (existing selections stay) */
+export const PS_SELECTION_OPEN = false;
+
 export const emptyMember = () => ({
   name: '',
   email: '',

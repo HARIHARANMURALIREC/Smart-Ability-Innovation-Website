@@ -131,6 +131,10 @@ export default function ProjectAbstractCard({
                 <div className="inline-flex min-w-[140px] items-center justify-center gap-1.5 rounded-xl border-2 border-slate-300 bg-slate-100 px-4 py-2.5 text-sm font-semibold text-slate-500 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-400">
                   <Lock className="h-4 w-4" /> Full
                 </div>
+              ) : selectionLocked ? (
+                <div className="inline-flex min-w-[140px] items-center justify-center gap-1.5 rounded-xl border-2 border-slate-300 bg-slate-100 px-4 py-2.5 text-sm font-semibold text-slate-500 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-400">
+                  <Lock className="h-4 w-4" /> Closed
+                </div>
               ) : canSelect ? (
                 <button
                   type="button"
@@ -216,6 +220,12 @@ export default function ProjectAbstractCard({
           {selectionLocked && isSelected && (
             <p className="rounded-lg bg-emerald-50 px-3 py-2 text-center text-sm text-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-200">
               Your team&apos;s selection is locked and cannot be changed.
+            </p>
+          )}
+
+          {selectionLocked && !isSelected && !isFull && (
+            <p className="rounded-lg bg-slate-100 px-3 py-2 text-center text-sm text-slate-600 dark:bg-slate-800 dark:text-slate-400">
+              Problem statement selection is closed.
             </p>
           )}
         </div>

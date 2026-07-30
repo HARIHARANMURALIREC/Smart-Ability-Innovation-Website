@@ -6,7 +6,7 @@
  */
 
 import { supabase } from '@/config/supabase';
-import { MAX_TEAMS_PER_PROBLEM } from '@/utils';
+import { MAX_TEAMS_PER_PROBLEM, PS_SELECTION_OPEN } from '@/utils';
 import type { Team, TeamMember, SubmissionStatus } from '@/types';
 
 /**
@@ -270,6 +270,13 @@ export async function selectProject(
       return {
         team: null,
         error: 'Your team has already selected a problem statement. The selection cannot be changed.',
+      };
+    }
+
+    if (!PS_SELECTION_OPEN) {
+      return {
+        team: null,
+        error: 'Problem statement selection is closed. New selections are no longer accepted.',
       };
     }
 

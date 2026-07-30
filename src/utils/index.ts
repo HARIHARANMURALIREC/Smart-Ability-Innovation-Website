@@ -15,6 +15,9 @@ export const MAX_TEAMS_PER_PROBLEM = 15;
 /** When false, new team leader registrations are blocked (member joining stays open) */
 export const REGISTRATION_OPEN = false;
 
+/** When false, teams cannot newly select a problem statement (existing selections stay) */
+export const PS_SELECTION_OPEN = false;
+
 /** Max PDF submission file size in megabytes */
 export const MAX_SUBMISSION_FILE_SIZE_MB = Number(import.meta.env.VITE_MAX_FILE_SIZE_MB) || 10;
 export const MAX_SUBMISSION_FILE_SIZE_BYTES = MAX_SUBMISSION_FILE_SIZE_MB * 1024 * 1024;
