@@ -4,7 +4,8 @@ import { statusLabel, teamMemberCount } from '@/utils';
 
 export interface TeamExportFilters {
   submissionStatus: 'all' | SubmissionStatus;
-  problemStatement: 'all' | 'none' | string;
+  /** all | selected (any PS) | none | specific project id */
+  problemStatement: 'all' | 'selected' | 'none' | string;
   membersSetup: 'all' | 'complete' | 'incomplete';
   department: 'all' | string;
   pdfSubmitted: 'all' | 'yes' | 'no';
@@ -25,9 +26,11 @@ export function filterTeamsForExport(teams: Team[], filters: TeamExportFilters):
     }
 
     if (filters.problemStatement === 'none' && team.selectedProjectId) return false;
+    if (filters.problemStatement === 'selected' && !team.selectedProjectId) return false;
     if (
       filters.problemStatement !== 'all' &&
       filters.problemStatement !== 'none' &&
+      filters.problemStatement !== 'selected' &&
       team.selectedProjectId !== filters.problemStatement
     ) {
       return false;

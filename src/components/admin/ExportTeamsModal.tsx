@@ -87,6 +87,7 @@ export default function ExportTeamsModal({ open, onClose, teams, onExported }: E
             className={selectClass}
           >
             <option value="all">All problems</option>
+            <option value="selected">PS selected teams</option>
             <option value="none">Not selected</option>
             {PROJECT_ABSTRACTS.map((p) => (
               <option key={p.id} value={p.id}>
