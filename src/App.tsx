@@ -20,6 +20,7 @@ const StudentProblems = lazy(() => import('@/pages/student/StudentProblems'));
 const StudentSubmission = lazy(() => import('@/pages/student/StudentSubmission'));
 const StudentTeam = lazy(() => import('@/pages/student/StudentTeam'));
 const StudentDocuments = lazy(() => import('@/pages/student/StudentDocuments'));
+const StudentVenue = lazy(() => import('@/pages/student/StudentVenue'));
 const TeamMembersSetupPage = lazy(() => import('@/pages/TeamMembersSetupPage'));
 const MemberRegisterPage = lazy(() => import('@/pages/MemberRegisterPage'));
 const TeamLeaderRegisterPage = lazy(() => import('@/pages/TeamLeaderRegisterPage'));
@@ -78,6 +79,7 @@ const router = createBrowserRouter([
       { path: 'submission', element: <StudentSubmission /> },
       { path: 'team', element: <StudentTeam /> },
       { path: 'documents', element: <StudentDocuments /> },
+      { path: 'venue', element: <StudentVenue /> },
     ],
   },
   {

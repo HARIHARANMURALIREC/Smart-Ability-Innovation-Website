@@ -7,6 +7,7 @@ import {
   Upload,
   Users,
   FileText,
+  MapPin,
   LogOut,
   Menu,
   X,
@@ -22,6 +23,7 @@ const NAV = [
   { to: '/student/submission', label: 'PDF Submission', icon: Upload },
   { to: '/student/team', label: 'My Team', icon: Users },
   { to: '/student/documents', label: 'Documents', icon: FileText },
+  { to: '/student/venue', label: 'Venue', icon: MapPin },
 ];
 
 export default function StudentSidebar() {

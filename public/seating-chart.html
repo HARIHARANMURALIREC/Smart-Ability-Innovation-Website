@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SmartAbility 2026 — Seating Chart</title>
+<style>
+  :root{
+    --ink:#1b1f23;
+    --paper:#f7f5f1;
+    --panel:#ffffff;
+    --line:#d8d3c8;
+    --muted:#767268;
+    --accent:#1b1f23;
+    --space-bg:#eef0f2;
+    --blank-bg:transparent;
+    --door:#c0392b;
+    --highlight:#ffd23f;
+    --radius:10px;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif;
+    background:var(--paper);
+    color:var(--ink);
+    padding:24px 16px 64px;
+  }
+  .wrap{max-width:1180px;margin:0 auto;}
+  header.page-head{
+    text-align:center;
+    margin-bottom:28px;
+  }
+  header.page-head .eyebrow{
+    letter-spacing:.18em;
+    text-transform:uppercase;
+    font-size:11px;
+    color:var(--muted);
+    font-weight:700;
+  }
+  header.page-head h1{
+    font-size:clamp(28px,4vw,42px);
+    margin:6px 0 8px;
+    letter-spacing:-0.02em;
+  }
+  header.page-head p{
+    color:var(--muted);
+    margin:0;
+    font-size:14.5px;
+  }
+
+  /* ---------- Search ---------- */
+  .search-box{
+    position:sticky;
+    top:10px;
+    z-index:50;
+    max-width:640px;
+    margin:0 auto 28px;
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:999px;
+    box-shadow:0 6px 22px rgba(20,20,20,.08);
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:6px 8px 6px 20px;
+  }
+  .search-box svg{flex:0 0 auto;color:var(--muted);}
+  .search-box input{
+    flex:1;
+    border:none;
+    outline:none;
+    font-size:16px;
+    padding:12px 4px;
+    background:transparent;
+    color:var(--ink);
+    font-family:inherit;
+  }
+  .search-box input::placeholder{color:#a9a49a;}
+  .search-clear{
+    border:none;
+    background:var(--ink);
+    color:#fff;
+    border-radius:999px;
+    padding:10px 18px;
+    font-size:13.5px;
+    cursor:pointer;
+    font-weight:600;
+    display:none;
+  }
+  .search-clear.show{display:inline-block;}
+
+  .results{
+    max-width:900px;
+    margin:0 auto 28px;
+    display:none;
+  }
+  .results.show{display:block;}
+  .results .count{
+    font-size:13px;
+    color:var(--muted);
+    margin-bottom:10px;
+    padding-left:4px;
+  }
+  .result-card{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:12px;
+    padding:14px 18px;
+    margin-bottom:10px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    flex-wrap:wrap;
+    cursor:pointer;
+    transition:transform .15s ease, box-shadow .15s ease;
+  }
+  .result-card:hover{transform:translateY(-1px);box-shadow:0 6px 16px rgba(0,0,0,.08);}
+  .result-card .rc-left{display:flex;align-items:center;gap:12px;}
+  .rc-swatch{width:10px;height:34px;border-radius:4px;flex:0 0 auto;}
+  .rc-name{font-weight:700;font-size:15.5px;}
+  .rc-leader{font-size:13px;color:var(--muted);}
+  .rc-meta{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:12.5px;}
+  .pill{
+    background:var(--space-bg);
+    border:1px solid var(--line);
+    padding:4px 10px;
+    border-radius:999px;
+    font-weight:600;
+    white-space:nowrap;
+  }
+  .pill.warn{background:#fff3cd;border-color:#f0d98c;color:#7a5c00;}
+  .no-results{
+    text-align:center;
+    color:var(--muted);
+    padding:30px 0;
+    font-size:14.5px;
+  }
+
+  /* ---------- Legend ---------- */
+  .legend{
+    max-width:1100px;
+    margin:0 auto 34px;
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+    justify-content:center;
+  }
+  .legend .chip{
+    display:flex;align-items:center;gap:7px;
+    font-size:12px;font-weight:600;
+    border:1px solid var(--line);
+    border-radius:999px;
+    padding:5px 12px 5px 8px;
+    background:var(--panel);
+  }
+  .legend .dot{width:10px;height:10px;border-radius:50%;flex:0 0 auto;}
+
+  /* ---------- Rooms ---------- */
+  .rooms{
+    display:flex;
+    gap:28px;
+    justify-content:center;
+    flex-wrap:wrap;
+    align-items:flex-start;
+  }
+  .room-card{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:16px;
+    padding:20px 20px 26px;
+    box-shadow:0 10px 30px rgba(20,20,20,.05);
+    width:100%;
+    max-width:520px;
+  }
+  .room-head{
+    margin-bottom:2px;
+  }
+  .room-head h2{
+    font-size:19px;
+    margin:0;
+    letter-spacing:-0.01em;
+  }
+  .wall-top, .wall-bottom{
+    position:relative;
+    display:flex;
+    gap:14px;
+  }
+  .wall-top{
+    border-top:3px solid var(--ink);
+    margin-top:14px;
+    padding-top:10px;
+    align-items:flex-start;
+  }
+  .wall-bottom{
+    border-bottom:3px solid var(--ink);
+    margin-top:6px;
+    margin-bottom:0;
+    padding-bottom:10px;
+    align-items:flex-end;
+  }
+  .wall-full{ justify-content:space-between; }
+  .wall-simple{ justify-content:flex-end; }
+  .tv-icon{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:3px;
+    flex:0 0 auto;
+    margin:0 auto;
+  }
+  .tv-icon .tv-bar{
+    width:110px;
+    height:12px;
+    background:#eeeeee;
+    border:2px solid var(--ink);
+    border-radius:2px;
+  }
+  .tv-icon .tv-label{
+    font-size:9.5px;
+    font-weight:700;
+    letter-spacing:.05em;
+    color:var(--muted);
+    text-transform:uppercase;
+  }
+  .door-badge{
+    font-size:11px;
+    font-weight:700;
+    letter-spacing:.06em;
+    text-transform:uppercase;
+    color:var(--door);
+    border:1px solid var(--door);
+    border-radius:999px;
+    padding:4px 10px;
+    display:flex;
+    align-items:center;
+    gap:5px;
+    white-space:nowrap;
+    flex:0 0 auto;
+  }
+  .front-door-block{
+    display:flex;
+    flex-direction:column;
+    align-items:flex-end;
+    gap:5px;
+    flex:0 0 auto;
+    text-align:right;
+  }
+  .front-door-block .room-sub{
+    margin:0;
+    max-width:170px;
+    text-align:right;
+  }
+  .room-sub{font-size:11.5px;color:var(--muted);margin:0 0 16px;line-height:1.4;}
+  .grid{
+    display:flex;
+    flex-direction:column;
+    gap:3px;
+    position:relative;
+  }
+  .grid-row{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:3px;
+  }
+  .grid-row.row-space{
+    grid-template-columns:1fr;
+    height:12px;
+  }
+  .grid-row.row-space .aisle{
+    height:100%;
+    border-top:1px dashed #c7c2b6;
+    border-bottom:1px dashed #c7c2b6;
+    background:repeating-linear-gradient(45deg, #eceae4, #eceae4 4px, #f7f5f1 4px, #f7f5f1 8px);
+    border-radius:3px;
+  }
+  .grid-row.row-blank{height:7px;}
+  .seat{
+    border-radius:6px;
+    padding:5px 6px;
+    min-height:38px;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    gap:1px;
+    color:#fff;
+    cursor:default;
+    transition:transform .15s ease, box-shadow .15s ease, outline .15s ease;
+    position:relative;
+    overflow:hidden;
+  }
+  .seat .t-name{font-size:10.3px;font-weight:700;line-height:1.15;overflow-wrap:anywhere;}
+  .seat .t-leader{font-size:8.6px;opacity:.85;line-height:1.1;overflow-wrap:anywhere;}
+  .seat .t-ps{
+    position:absolute;
+    top:2px; right:4px;
+    font-size:7.5px;
+    font-weight:700;
+    opacity:.65;
+    letter-spacing:.03em;
+  }
+  .seat.empty{
+    background:repeating-linear-gradient(135deg, #ececec, #ececec 4px, #f7f5f1 4px, #f7f5f1 8px);
+    color:#9c9890;
+  }
+  .seat.empty .t-name{font-size:9.5px;font-weight:600;}
+  .seat.highlight{
+    outline:3px solid var(--highlight);
+    outline-offset:1px;
+    transform:scale(1.06);
+    box-shadow:0 6px 18px rgba(0,0,0,.28);
+    z-index:5;
+  }
+  .seat.dim{opacity:.25;}
+
+  /* ---------- "Your team" marker ---------- */
+  .seat.you{
+    outline:3px solid #22c55e;
+    outline-offset:2px;
+    overflow:visible;
+    z-index:6;
+    animation:youPulse 1.8s ease-in-out infinite;
+  }
+  .seat.you .you-badge{
+    position:absolute;
+    top:-20px;
+    left:50%;
+    transform:translateX(-50%);
+    background:#22c55e;
+    color:#fff;
+    font-size:8.5px;
+    font-weight:800;
+    letter-spacing:.04em;
+    text-transform:uppercase;
+    padding:3px 8px;
+    border-radius:999px;
+    white-space:nowrap;
+    box-shadow:0 3px 10px rgba(34,197,94,.45);
+    z-index:7;
+    pointer-events:none;
+  }
+  .seat.you .you-badge::after{
+    content:'';
+    position:absolute;
+    bottom:-4px;
+    left:50%;
+    transform:translateX(-50%);
+    border:4px solid transparent;
+    border-top-color:#22c55e;
+    border-bottom:none;
+  }
+  @keyframes youPulse{
+    0%,100%{box-shadow:0 0 0 0 rgba(34,197,94,.55);}
+    50%{box-shadow:0 0 0 7px rgba(34,197,94,0);}
+  }
+
+  .overflow-note{
+    max-width:900px;
+    margin:34px auto 0;
+    background:#fff8e6;
+    border:1px solid #f0d98c;
+    border-radius:14px;
+    padding:16px 20px;
+    font-size:13.5px;
+  }
+  .overflow-note h3{margin:0 0 8px;font-size:14.5px;}
+  .overflow-note ul{margin:0;padding-left:18px;}
+  .overflow-note li{margin-bottom:3px;}
+
+  footer{
+    text-align:center;
+    color:var(--muted);
+    font-size:12px;
+    margin-top:40px;
+  }
+
+  @media (max-width:600px){
+    .search-box{position:static;}
+    .seat .t-leader{display:none;}
+  }
+
+  /* ---------- Dark mode ---------- */
+  body.dark{
+    --ink:#e7e9ec;
+    --paper:#000000;
+    --panel:#0e1319;
+    --line:#262c35;
+    --muted:#9aa3ad;
+    --space-bg:#161b22;
+  }
+  body.dark .search-box{box-shadow:0 6px 22px rgba(0,0,0,.45);}
+  body.dark .search-box input::placeholder{color:#6b7480;}
+  body.dark .search-clear{background:#e7e9ec;color:#0b0f14;}
+  body.dark .result-card:hover{box-shadow:0 6px 16px rgba(0,0,0,.5);}
+  body.dark .pill.warn{background:#3a2f0d;border-color:#6b5716;color:#e8c85a;}
+  body.dark .room-card{box-shadow:0 10px 30px rgba(0,0,0,.4);}
+  body.dark .wall-top{border-top-color:#a7b0ba;}
+  body.dark .wall-bottom{border-bottom-color:#a7b0ba;}
+  body.dark .tv-icon .tv-bar{background:#2c333d;border-color:#a7b0ba;}
+  body.dark .grid-row.row-space .aisle{
+    border-top-color:#333a44;
+    border-bottom-color:#333a44;
+    background:repeating-linear-gradient(45deg, #161b22, #161b22 4px, #0a0e13 4px, #0a0e13 8px);
+  }
+  body.dark .seat.empty{
+    background:repeating-linear-gradient(135deg, #1a2129, #1a2129 4px, #10151b 4px, #10151b 8px);
+    color:#8b93a0;
+  }
+  body.dark .overflow-note{background:#2a2410;border-color:#5c4d16;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="search-box">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+    <input id="searchInput" type="text" placeholder="Search team name or team leader…" autocomplete="off">
+    <button class="search-clear" id="clearBtn">Clear</button>
+  </div>
+
+  <div class="results" id="results">
+    <div class="count" id="resultCount"></div>
+    <div id="resultList"></div>
+  </div>
+
+  <div class="legend" id="legend"></div>
+
+  <div class="rooms" id="roomsContainer"></div>
+
+  <div class="overflow-note" id="overflowNote" style="display:none;">
+    <h3>⚠ Not yet assigned a specific seat</h3>
+    <p style="margin:0 0 8px;color:var(--muted);">These teams belong to a problem statement whose table is already full. They'll need an extra chair at that table or a nearby seat.</p>
+    <ul id="overflowList"></ul>
+  </div>
+
+  <footer>Tap/click any highlighted seat, or search above. Data compiled from the official room &amp; team allotment sheets.</footer>
+</div>
+
+<script id="seatData" type="application/json">
+{"rooms":{"Anew202":[[{"type":"blank"},{"type":"seat","ps":"PS-11","team":"DADA","room":"Anew202","row":0,"col":1,"leader":"Andryan Durai J"},{"type":"seat","ps":"PS-11","team":"Synthexia tech","room":"Anew202","row":0,"col":2,"leader":"Yogeeshwaran"}],[{"type":"seat","ps":"PS-11","team":"MITRON","room":"Anew202","row":1,"col":0,"leader":"Nishani B"},{"type":"seat","ps":"PS-11","team":"SHIELD","room":"Anew202","row":1,"col":1,"leader":"Derick Dilip"},{"type":"seat","ps":"PS-11","team":"Hack4Hope","room":"Anew202","row":1,"col":2,"leader":"Lakshanasri G"}],[{"type":"seat","ps":"PS-11","team":"Emirate","room":"Anew202","row":2,"col":0,"leader":"HARISH M"},{"type":"seat","ps":"PS-11","team":"Team Janga","room":"Anew202","row":2,"col":1,"leader":"Aakash"},{"type":"seat","ps":"PS-11","team":"Maverick","room":"Anew202","row":2,"col":2,"leader":"Rayhaan backe"}],[{"type":"seat","ps":"PS-11","team":"zodiax","room":"Anew202","row":3,"col":0,"leader":"SARIKA R"},{"type":"blank"},{"type":"seat","ps":"PS-11","team":"Medminds","room":"Anew202","row":3,"col":2,"leader":"Vaishnavi M"}],[{"type":"blank"},{"type":"seat","ps":"PS-07","team":"Nebula Forge","room":"Anew202","row":4,"col":1,"leader":"Mukesh.E"},{"type":"blank"}],[{"type":"seat","ps":"PS-07","team":"Tech Titans","room":"Anew202","row":5,"col":0,"leader":"Mohhit Rishi S"},{"type":"seat","ps":"PS-07","team":"Codevenant","room":"Anew202","row":5,"col":1,"leader":"Prajesh S K"},{"type":"seat","ps":"PS-07","team":"Tech Devas","room":"Anew202","row":5,"col":2,"leader":"Kaviya A K"}],[{"type":"seat","ps":"PS-07","team":"MATRIXCODERS","room":"Anew202","row":6,"col":0,"leader":"DEVADERSAN R"},{"type":"seat","ps":"PS-07","team":"Syntax terror","room":"Anew202","row":6,"col":1,"leader":"Dineshraj R"},{"type":"seat","ps":"PS-07","team":"OnlyVibeCoders","room":"Anew202","row":6,"col":2,"leader":"Naresh Kumar G"}],[{"type":"seat","ps":"PS-07","team":"AlgoAlters","room":"Anew202","row":7,"col":0,"leader":"S.Hariharaa"},{"type":"seat","ps":"PS-07","team":"SAAZ","room":"Anew202","row":7,"col":1,"leader":"Zaara Lawrence"},{"type":"seat","ps":"PS-07","team":"The Decoders","room":"Anew202","row":7,"col":2,"leader":"SAI HARISH M"}],[{"type":"seat","ps":"PS-07","team":"Technovators","room":"Anew202","row":8,"col":0,"leader":"Keerthivasan S"},{"type":"blank"},{"type":"seat","ps":"PS-07","team":"Fizz coders","room":"Anew202","row":8,"col":2,"leader":"Mohammed as"}],[{"type":"blank"},{"type":"seat","ps":"PS-06","team":"Hydra","room":"Anew202","row":9,"col":1,"leader":"Monisha P"},{"type":"seat","ps":"PS-06","team":"Resolvers United","room":"Anew202","row":9,"col":2,"leader":"Suchit Prabu V"}],[{"type":"seat","ps":"PS-06","team":"Dexters","room":"Anew202","row":10,"col":0,"leader":"Naren S"},{"type":"seat","ps":"PS-06","team":"NOX PHANTOM","room":"Anew202","row":10,"col":1,"leader":"BALA ADITYA D"},{"type":"seat","ps":"PS-06","team":"Tech knights","room":"Anew202","row":10,"col":2,"leader":"Spurgen"}],[{"type":"seat","ps":"PS-06","team":"BME GLADIATORS","room":"Anew202","row":11,"col":0,"leader":"GOKULRAM M"},{"type":"seat","ps":"PS-06","team":"InnovateX","room":"Anew202","row":11,"col":1,"leader":"D.Jayavarshini"},{"type":"seat","ps":"PS-06","team":"Tech@Null","room":"Anew202","row":11,"col":2,"leader":"MONISH.S"}],[{"type":"seat","ps":"PS-06","team":"Marvels","room":"Anew202","row":12,"col":0,"leader":"Siddesh Kumar"},{"type":"seat","ps":"PS-06","team":"Obsidian","room":"Anew202","row":12,"col":1,"leader":"Angelin Blessy J"},{"type":"seat","ps":"PS-06","team":"Aiders","room":"Anew202","row":12,"col":2,"leader":"Venkat Badhrin"}],[{"type":"seat","ps":"PS-06","team":"NOVA","room":"Anew202","row":13,"col":0,"leader":"S Rithika Saran"},{"type":"seat","ps":"PS-09","team":"Limitless","room":"Anew202","row":13,"col":1,"leader":"Monisha Dhar"},{"type":"seat","ps":"PS-06","team":"SheCodes","room":"Anew202","row":13,"col":2,"leader":"DELFIA LOURDU"}],[{"type":"blank"},{"type":"seat","ps":"PS-09","team":"Dosto Devs","room":"Anew202","row":14,"col":1,"leader":"PRAKASH A"},{"type":"seat","ps":"PS-09","team":"Endeavours","room":"Anew202","row":14,"col":2,"leader":"Gayasree B"}],[{"type":"seat","ps":"PS-09","team":"Zen coders","room":"Anew202","row":15,"col":0,"leader":"Ashleena Gladi"},{"type":"seat","ps":"PS-09","team":"TechTonics","room":"Anew202","row":15,"col":1,"leader":"Priyadharshini."},{"type":"seat","ps":"PS-09","team":"RAVEN CLAW","room":"Anew202","row":15,"col":2,"leader":"Vaishali L"}],[{"type":"seat","ps":"PS-09","team":"Interpol","room":"Anew202","row":16,"col":0,"leader":"Poorvika"},{"type":"seat","ps":"PS-09","team":"Cyberpunks","room":"Anew202","row":16,"col":1,"leader":"Ponsurabhi V"},{"type":"seat","ps":"PS-09","team":"Sapphire","room":"Anew202","row":16,"col":2,"leader":"Sowmya Rajara"}],[{"type":"seat","ps":"PS-09","team":"CORE FOUR","room":"Anew202","row":17,"col":0,"leader":"SWATHI.J.L"},{"type":"seat","ps":"PS-09","team":"Terminator","room":"Anew202","row":17,"col":1,"leader":"TAMILSELVAN S"},{"type":"seat","ps":"PS-09","team":"hustler","room":"Anew202","row":17,"col":2,"leader":"LOKESH S"}],[{"type":"seat","ps":"PS-09","team":"NeTRunners","room":"Anew202","row":18,"col":0,"leader":"C S Devanathan"},{"type":"seat","ps":"PS-09","team":"TEAM 4X","room":"Anew202","row":18,"col":1,"leader":"Aravindan K"},{"type":"seat","ps":"PS-09","team":"Code Rush","room":"Anew202","row":18,"col":2,"leader":"Dhanushiya Siv"}],[{"type":"seat","ps":"PS-05","team":"tunder","room":"Anew202","row":19,"col":0,"leader":"ajay"},{"type":"seat","ps":"PS-05","team":"Agents","room":"Anew202","row":19,"col":1,"leader":"SATHISH E"},{"type":"seat","ps":"PS-05","team":"Epistsky","room":"Anew202","row":19,"col":2,"leader":"Abdul Rahim U"}],[{"type":"seat","ps":"PS-05","team":"Compile N Crash","room":"Anew202","row":20,"col":0,"leader":"Yazhini P S"},{"type":"seat","ps":"PS-05","team":"NeuroSparks","room":"Anew202","row":20,"col":1,"leader":"Akilan M"},{"type":"seat","ps":"PS-05","team":"Titans","room":"Anew202","row":20,"col":2,"leader":"Balaji.K"}],[{"type":"seat","ps":"PS-05","team":"THE CHANGE MAKERS","room":"Anew202","row":21,"col":0,"leader":"Kayalvizhi K"},{"type":"seat","ps":"PS-05","team":"Prime Pulse","room":"Anew202","row":21,"col":1,"leader":"Satyajit S"},{"type":"seat","ps":"PS-05","team":"VisionX","room":"Anew202","row":21,"col":2,"leader":"Mohith O"}],[{"type":"seat","ps":"PS-05","team":"Two square","room":"Anew202","row":22,"col":0,"leader":"Michelyn Valind"},{"type":"seat","ps":"PS-05","team":"Nexus Nine","room":"Anew202","row":22,"col":1,"leader":"Romikkhaa Shr"},{"type":"seat","ps":"PS-05","team":"2x2 HACKERS","room":"Anew202","row":22,"col":2,"leader":"NIVETHITHA G"}]],"Anew201":[[{"type":"seat","ps":"PS-01","team":"HackHers","room":"Anew201","row":0,"col":0,"leader":"Lavanya V"},{"type":"seat","ps":"PS-01","team":"CodeCrafters","room":"Anew201","row":0,"col":1,"leader":"Pranathee H"},{"type":"seat","ps":"PS-01","team":"Knight's Gambit","room":"Anew201","row":0,"col":2,"leader":"Lakshmi Naraya"}],[{"type":"seat","ps":"PS-01","team":"Robo Titans","room":"Anew201","row":1,"col":0,"leader":"Padmesh S"},{"type":"seat","ps":"PS-01","team":"Ascend","room":"Anew201","row":1,"col":1,"leader":"Krithika Gopala"},{"type":"seat","ps":"PS-01","team":"Tangent 90","room":"Anew201","row":1,"col":2,"leader":"Saurav Karunak"}],[{"type":"seat","ps":"PS-01","team":"Quantum minds","room":"Anew201","row":2,"col":0,"leader":"S.Mohamed Sa"},{"type":"seat","ps":"PS-01","team":"Fantastic 4","room":"Anew201","row":2,"col":1,"leader":"Lakson s"},{"type":"seat","ps":"PS-01","team":"DK Enthusiasts","room":"Anew201","row":2,"col":2,"leader":"Pavan Krish"}],[{"type":"seat","ps":"PS-01","team":"Future Innovators","room":"Anew201","row":3,"col":0,"leader":"Deephika P"},{"type":"seat","ps":"PS-01","team":"Blast","room":"Anew201","row":3,"col":1,"leader":"Premraj.R"},{"type":"seat","ps":"PS-01","team":"AgenticX","room":"Anew201","row":3,"col":2,"leader":"Samyuktha Sow"}],[{"type":"seat","ps":"PS-02","team":"Code crusaders","room":"Anew201","row":4,"col":0,"leader":"Sharumitha K"},{"type":"seat","ps":"PS-02","team":"Innobots","room":"Anew201","row":4,"col":1,"leader":"Kirthish Raj V"},{"type":"blank"}],[{"type":"seat","ps":"PS-02","team":"AccessNova","room":"Anew201","row":5,"col":0,"leader":"Reemathaslim S"},{"type":"seat","ps":"PS-02","team":"EchoBridge","room":"Anew201","row":5,"col":1,"leader":"NIVEDHA B"},{"type":"seat","ps":"PS-02","team":"Zenith Dynamics","room":"Anew201","row":5,"col":2,"leader":"Santhosh Kuma"}],[{"type":"seat","ps":"PS-02","team":"Scouts","room":"Anew201","row":6,"col":0,"leader":"Yogendran S"},{"type":"seat","ps":"PS-02","team":"Fusion Force","room":"Anew201","row":6,"col":1,"leader":"Harish V"},{"type":"seat","ps":"PS-02","team":"Mind Flayers","room":"Anew201","row":6,"col":2,"leader":"Kavin Raj T"}],[{"type":"seat","ps":"PS-02","team":"Syntax Surgeons","room":"Anew201","row":7,"col":0,"leader":"B.visvanatha"},{"type":"seat","ps":"PS-02","team":"Nexora","room":"Anew201","row":7,"col":1,"leader":"Soumiiya VK"},{"type":"seat","ps":"PS-02","team":"GoodFellas","room":"Anew201","row":7,"col":2,"leader":"Iniyan V"}],[{"type":"seat","ps":"PS-03","team":"syntax","room":"Anew201","row":8,"col":0,"leader":"satyaa"},{"type":"blank"},{"type":"seat","ps":"PS-02","team":"Infivion","room":"Anew201","row":8,"col":2,"leader":"Rkesh R"}],[{"type":"seat","ps":"PS-03","team":"Webxite","room":"Anew201","row":9,"col":0,"leader":"Deepan Ananda"},{"type":"seat","ps":"PS-03","team":"Powerhouse","room":"Anew201","row":9,"col":1,"leader":"Madhumitha P"},{"type":"seat","ps":"PS-03","team":"Hawk learners","room":"Anew201","row":9,"col":2,"leader":"poovarahan"}],[{"type":"seat","ps":"PS-03","team":"Codynergy","room":"Anew201","row":10,"col":0,"leader":"Srividya K"},{"type":"seat","ps":"PS-03","team":"Ctrl + Win","room":"Anew201","row":10,"col":1,"leader":"Sanjay R"},{"type":"seat","ps":"PS-03","team":"HexAckers","room":"Anew201","row":10,"col":2,"leader":"Arjun K"}],[{"type":"seat","ps":"PS-03","team":"THD","room":"Anew201","row":11,"col":0,"leader":"Dhayanesh G"},{"type":"seat","ps":"PS-03","team":"Dream Builders","room":"Anew201","row":11,"col":1,"leader":"Devasri S"},{"type":"seat","ps":"PS-03","team":"Syntax syndicate","room":"Anew201","row":11,"col":2,"leader":"Mithul P"}],[{"type":"seat","ps":"PS-04","team":"ByteX","room":"Anew201","row":12,"col":0,"leader":"Lingesh Kumar"},{"type":"seat","ps":"PS-04","team":"Zero Day Squad","room":"Anew201","row":12,"col":1,"leader":"Tarun S"},{"type":"blank"}],[{"type":"seat","ps":"PS-04","team":"AssistIQ","room":"Anew201","row":13,"col":0,"leader":"Monisha.M"},{"type":"seat","ps":"PS-04","team":"Team Cipher","room":"Anew201","row":13,"col":1,"leader":"Priyan S"},{"type":"seat","ps":"PS-04","team":"TechNova","room":"Anew201","row":13,"col":2,"leader":"Merilyn Jasmin"}],[{"type":"seat","ps":"PS-04","team":"Code crafters","room":"Anew201","row":14,"col":0,"leader":"Vishva k"},{"type":"seat","ps":"PS-04","team":"Cyphrix","room":"Anew201","row":14,"col":1,"leader":"G Siva"},{"type":"seat","ps":"PS-04","team":"XSparks","room":"Anew201","row":14,"col":2,"leader":"ARJUN T"}],[{"type":"seat","ps":"PS-04","team":"Neural infinity","room":"Anew201","row":15,"col":0,"leader":"Swetha veeram"},{"type":"seat","ps":"PS-04","team":"ERR501","room":"Anew201","row":15,"col":1,"leader":"Sudheer Krishn"},{"type":"seat","ps":"PS-04","team":"Echo of Hearts","room":"Anew201","row":15,"col":2,"leader":"ISHWARYA S"}],[{"type":"blank"},{"type":"seat","ps":"PS-10","team":"Embedded Minds","room":"Anew201","row":16,"col":1,"leader":"K T NAHULNAA"},{"type":"blank"}],[{"type":"seat","ps":"PS-10","team":"Ctrl+Win","room":"Anew201","row":17,"col":0,"leader":"Samyuktha K.S."},{"type":"seat","ps":"PS-10","team":"NEXT GEN","room":"Anew201","row":17,"col":1,"leader":"sathya narayan"},{"type":"seat","ps":"PS-10","team":"Point Break","room":"Anew201","row":17,"col":2,"leader":"Prithvi H"}],[{"type":"seat","ps":"PS-10","team":"Innovx","room":"Anew201","row":18,"col":0,"leader":"Hemashree R"},{"type":"seat","ps":"PS-10","team":"Nexus","room":"Anew201","row":18,"col":1,"leader":"Madhav Rao G"},{"type":"seat","ps":"PS-10","team":"TEAM ORA","room":"Anew201","row":18,"col":2,"leader":"Nicholas Samue"}],[{"type":"blank"},{"type":"seat","ps":"PS-10","team":"The Robbo Sorcerers","room":"Anew201","row":19,"col":1,"leader":"Prajesh M"},{"type":"seat","ps":"PS-10","team":"The Fab Four","room":"Anew201","row":19,"col":2,"leader":"R.Bharathiraja"}],[{"type":"seat","ps":"PS-10","team":"Imperial x","room":"Anew201","row":20,"col":0,"leader":"Shyam S"},{"type":"seat","ps":"PS-08","team":"Project Zero","room":"Anew201","row":20,"col":1,"leader":"Mayank Sharm"},{"type":"seat","ps":"PS-08","team":"VORTEX","room":"Anew201","row":20,"col":2,"leader":"Sivaranjanii.m"}],[{"type":"seat","ps":"PS-10","team":"The Jumper Wires","room":"Anew201","row":21,"col":0,"leader":"Jabesh Inbaraj"},{"type":"seat","ps":"PS-08","team":"Empathy Engines","room":"Anew201","row":21,"col":1,"leader":"Abirami L"},{"type":"seat","ps":"PS-08","team":"TEAM OG","room":"Anew201","row":21,"col":2,"leader":"Hariharan Mura"}],[{"type":"seat","ps":"PS-08","team":"Hufflepuff","room":"Anew201","row":22,"col":0,"leader":"Mahalakshmi M"},{"type":"seat","ps":"PS-08","team":"TEA CODERS","room":"Anew201","row":22,"col":1,"leader":"DEIVA LAKSHM"},{"type":"seat","ps":"PS-08","team":"Protectech","room":"Anew201","row":22,"col":2,"leader":"Deveshwar S"}],[{"type":"seat","ps":"PS-08","team":"The Renovators","room":"Anew201","row":23,"col":0,"leader":"Bharath V"},{"type":"blank"},{"type":"blank"}],[{"type":"seat","ps":"PS-08","team":"KUTTY KONCEPTS","room":"Anew201","row":24,"col":0,"leader":"TRISHANTH G"},{"type":"blank"},{"type":"blank"}],[{"type":"seat","ps":"PS-08","team":"Vibe Tribe","room":"Anew201","row":25,"col":0,"leader":"Pradeepa"},{"type":"blank"},{"type":"blank"}],[{"type":"seat","ps":"PS-08","team":"InkSpire","room":"Anew201","row":26,"col":0,"leader":"Durgaprasad V"},{"type":"blank"},{"type":"blank"}]]},"colors":{"PS-01":"#E4572E","PS-02":"#F3A712","PS-03":"#A8C256","PS-04":"#2E8B8B","PS-05":"#3E6DB5","PS-06":"#7B5EA7","PS-07":"#C74C7D","PS-08":"#5C8001","PS-09":"#D4A017","PS-10":"#4A7C59","PS-11":"#8B5A2B"},"index":[{"team":"DADA","leader":"Andryan Durai J","ps":"PS-11","room":"Anew202","row":0,"col":1},{"team":"Synthexia tech","leader":"Yogeeshwaran","ps":"PS-11","room":"Anew202","row":0,"col":2},{"team":"MITRON","leader":"Nishani B","ps":"PS-11","room":"Anew202","row":1,"col":0},{"team":"SHIELD","leader":"Derick Dilip","ps":"PS-11","room":"Anew202","row":1,"col":1},{"team":"Hack4Hope","leader":"Lakshanasri G","ps":"PS-11","room":"Anew202","row":1,"col":2},{"team":"Emirate","leader":"HARISH M","ps":"PS-11","room":"Anew202","row":2,"col":0},{"team":"Team Janga","leader":"Aakash","ps":"PS-11","room":"Anew202","row":2,"col":1},{"team":"Maverick","leader":"Rayhaan backe","ps":"PS-11","room":"Anew202","row":2,"col":2},{"team":"zodiax","leader":"SARIKA R","ps":"PS-11","room":"Anew202","row":3,"col":0},{"team":"Medminds","leader":"Vaishnavi M","ps":"PS-11","room":"Anew202","row":3,"col":2},{"team":"Nebula Forge","leader":"Mukesh.E","ps":"PS-07","room":"Anew202","row":4,"col":1},{"team":"Tech Titans","leader":"Mohhit Rishi S","ps":"PS-07","room":"Anew202","row":5,"col":0},{"team":"Codevenant","leader":"Prajesh S K","ps":"PS-07","room":"Anew202","row":5,"col":1},{"team":"Tech Devas","leader":"Kaviya A K","ps":"PS-07","room":"Anew202","row":5,"col":2},{"team":"MATRIXCODERS","leader":"DEVADERSAN R","ps":"PS-07","room":"Anew202","row":6,"col":0},{"team":"Syntax terror","leader":"Dineshraj R","ps":"PS-07","room":"Anew202","row":6,"col":1},{"team":"OnlyVibeCoders","leader":"Naresh Kumar G","ps":"PS-07","room":"Anew202","row":6,"col":2},{"team":"AlgoAlters","leader":"S.Hariharaa","ps":"PS-07","room":"Anew202","row":7,"col":0},{"team":"SAAZ","leader":"Zaara Lawrence","ps":"PS-07","room":"Anew202","row":7,"col":1},{"team":"The Decoders","leader":"SAI HARISH M","ps":"PS-07","room":"Anew202","row":7,"col":2},{"team":"Technovators","leader":"Keerthivasan S","ps":"PS-07","room":"Anew202","row":8,"col":0},{"team":"Fizz coders","leader":"Mohammed as","ps":"PS-07","room":"Anew202","row":8,"col":2},{"team":"Hydra","leader":"Monisha P","ps":"PS-06","room":"Anew202","row":9,"col":1},{"team":"Resolvers United","leader":"Suchit Prabu V","ps":"PS-06","room":"Anew202","row":9,"col":2},{"team":"Dexters","leader":"Naren S","ps":"PS-06","room":"Anew202","row":10,"col":0},{"team":"NOX PHANTOM","leader":"BALA ADITYA D","ps":"PS-06","room":"Anew202","row":10,"col":1},{"team":"Tech knights","leader":"Spurgen","ps":"PS-06","room":"Anew202","row":10,"col":2},{"team":"BME GLADIATORS","leader":"GOKULRAM M","ps":"PS-06","room":"Anew202","row":11,"col":0},{"team":"InnovateX","leader":"D.Jayavarshini","ps":"PS-06","room":"Anew202","row":11,"col":1},{"team":"Tech@Null","leader":"MONISH.S","ps":"PS-06","room":"Anew202","row":11,"col":2},{"team":"Marvels","leader":"Siddesh Kumar","ps":"PS-06","room":"Anew202","row":12,"col":0},{"team":"Obsidian","leader":"Angelin Blessy J","ps":"PS-06","room":"Anew202","row":12,"col":1},{"team":"Aiders","leader":"Venkat Badhrin","ps":"PS-06","room":"Anew202","row":12,"col":2},{"team":"NOVA","leader":"S Rithika Saran","ps":"PS-06","room":"Anew202","row":13,"col":0},{"team":"Limitless","leader":"Monisha Dhar","ps":"PS-09","room":"Anew202","row":13,"col":1},{"team":"SheCodes","leader":"DELFIA LOURDU","ps":"PS-06","room":"Anew202","row":13,"col":2},{"team":"Dosto Devs","leader":"PRAKASH A","ps":"PS-09","room":"Anew202","row":14,"col":1},{"team":"Endeavours","leader":"Gayasree B","ps":"PS-09","room":"Anew202","row":14,"col":2},{"team":"Zen coders","leader":"Ashleena Gladi","ps":"PS-09","room":"Anew202","row":15,"col":0},{"team":"TechTonics","leader":"Priyadharshini.","ps":"PS-09","room":"Anew202","row":15,"col":1},{"team":"RAVEN CLAW","leader":"Vaishali L","ps":"PS-09","room":"Anew202","row":15,"col":2},{"team":"Interpol","leader":"Poorvika","ps":"PS-09","room":"Anew202","row":16,"col":0},{"team":"Cyberpunks","leader":"Ponsurabhi V","ps":"PS-09","room":"Anew202","row":16,"col":1},{"team":"Sapphire","leader":"Sowmya Rajara","ps":"PS-09","room":"Anew202","row":16,"col":2},{"team":"CORE FOUR","leader":"SWATHI.J.L","ps":"PS-09","room":"Anew202","row":17,"col":0},{"team":"Terminator","leader":"TAMILSELVAN S","ps":"PS-09","room":"Anew202","row":17,"col":1},{"team":"hustler","leader":"LOKESH S","ps":"PS-09","room":"Anew202","row":17,"col":2},{"team":"NeTRunners","leader":"C S Devanathan","ps":"PS-09","room":"Anew202","row":18,"col":0},{"team":"TEAM 4X","leader":"Aravindan K","ps":"PS-09","room":"Anew202","row":18,"col":1},{"team":"Code Rush","leader":"Dhanushiya Siv","ps":"PS-09","room":"Anew202","row":18,"col":2},{"team":"tunder","leader":"ajay","ps":"PS-05","room":"Anew202","row":19,"col":0},{"team":"Agents","leader":"SATHISH E","ps":"PS-05","room":"Anew202","row":19,"col":1},{"team":"Epistsky","leader":"Abdul Rahim U","ps":"PS-05","room":"Anew202","row":19,"col":2},{"team":"Compile N Crash","leader":"Yazhini P S","ps":"PS-05","room":"Anew202","row":20,"col":0},{"team":"NeuroSparks","leader":"Akilan M","ps":"PS-05","room":"Anew202","row":20,"col":1},{"team":"Titans","leader":"Balaji.K","ps":"PS-05","room":"Anew202","row":20,"col":2},{"team":"THE CHANGE MAKERS","leader":"Kayalvizhi K","ps":"PS-05","room":"Anew202","row":21,"col":0},{"team":"Prime Pulse","leader":"Satyajit S","ps":"PS-05","room":"Anew202","row":21,"col":1},{"team":"VisionX","leader":"Mohith O","ps":"PS-05","room":"Anew202","row":21,"col":2},{"team":"Two square","leader":"Michelyn Valind","ps":"PS-05","room":"Anew202","row":22,"col":0},{"team":"Nexus Nine","leader":"Romikkhaa Shr","ps":"PS-05","room":"Anew202","row":22,"col":1},{"team":"2x2 HACKERS","leader":"NIVETHITHA G","ps":"PS-05","room":"Anew202","row":22,"col":2},{"team":"HackHers","leader":"Lavanya V","ps":"PS-01","room":"Anew201","row":0,"col":0},{"team":"CodeCrafters","leader":"Pranathee H","ps":"PS-01","room":"Anew201","row":0,"col":1},{"team":"Knight's Gambit","leader":"Lakshmi Naraya","ps":"PS-01","room":"Anew201","row":0,"col":2},{"team":"Robo Titans","leader":"Padmesh S","ps":"PS-01","room":"Anew201","row":1,"col":0},{"team":"Ascend","leader":"Krithika Gopala","ps":"PS-01","room":"Anew201","row":1,"col":1},{"team":"Tangent 90","leader":"Saurav Karunak","ps":"PS-01","room":"Anew201","row":1,"col":2},{"team":"Quantum minds","leader":"S.Mohamed Sa","ps":"PS-01","room":"Anew201","row":2,"col":0},{"team":"Fantastic 4","leader":"Lakson s","ps":"PS-01","room":"Anew201","row":2,"col":1},{"team":"DK Enthusiasts","leader":"Pavan Krish","ps":"PS-01","room":"Anew201","row":2,"col":2},{"team":"Future Innovators","leader":"Deephika P","ps":"PS-01","room":"Anew201","row":3,"col":0},{"team":"Blast","leader":"Premraj.R","ps":"PS-01","room":"Anew201","row":3,"col":1},{"team":"AgenticX","leader":"Samyuktha Sow","ps":"PS-01","room":"Anew201","row":3,"col":2},{"team":"Code crusaders","leader":"Sharumitha K","ps":"PS-02","room":"Anew201","row":4,"col":0},{"team":"Innobots","leader":"Kirthish Raj V","ps":"PS-02","room":"Anew201","row":4,"col":1},{"team":"AccessNova","leader":"Reemathaslim S","ps":"PS-02","room":"Anew201","row":5,"col":0},{"team":"EchoBridge","leader":"NIVEDHA B","ps":"PS-02","room":"Anew201","row":5,"col":1},{"team":"Zenith Dynamics","leader":"Santhosh Kuma","ps":"PS-02","room":"Anew201","row":5,"col":2},{"team":"Scouts","leader":"Yogendran S","ps":"PS-02","room":"Anew201","row":6,"col":0},{"team":"Fusion Force","leader":"Harish V","ps":"PS-02","room":"Anew201","row":6,"col":1},{"team":"Mind Flayers","leader":"Kavin Raj T","ps":"PS-02","room":"Anew201","row":6,"col":2},{"team":"Syntax Surgeons","leader":"B.visvanatha","ps":"PS-02","room":"Anew201","row":7,"col":0},{"team":"Nexora","leader":"Soumiiya VK","ps":"PS-02","room":"Anew201","row":7,"col":1},{"team":"GoodFellas","leader":"Iniyan V","ps":"PS-02","room":"Anew201","row":7,"col":2},{"team":"syntax","leader":"satyaa","ps":"PS-03","room":"Anew201","row":8,"col":0},{"team":"Infivion","leader":"Rkesh R","ps":"PS-02","room":"Anew201","row":8,"col":2},{"team":"Webxite","leader":"Deepan Ananda","ps":"PS-03","room":"Anew201","row":9,"col":0},{"team":"Powerhouse","leader":"Madhumitha P","ps":"PS-03","room":"Anew201","row":9,"col":1},{"team":"Hawk learners","leader":"poovarahan","ps":"PS-03","room":"Anew201","row":9,"col":2},{"team":"Codynergy","leader":"Srividya K","ps":"PS-03","room":"Anew201","row":10,"col":0},{"team":"Ctrl + Win","leader":"Sanjay R","ps":"PS-03","room":"Anew201","row":10,"col":1},{"team":"HexAckers","leader":"Arjun K","ps":"PS-03","room":"Anew201","row":10,"col":2},{"team":"THD","leader":"Dhayanesh G","ps":"PS-03","room":"Anew201","row":11,"col":0},{"team":"Dream Builders","leader":"Devasri S","ps":"PS-03","room":"Anew201","row":11,"col":1},{"team":"Syntax syndicate","leader":"Mithul P","ps":"PS-03","room":"Anew201","row":11,"col":2},{"team":"ByteX","leader":"Lingesh Kumar","ps":"PS-04","room":"Anew201","row":12,"col":0},{"team":"Zero Day Squad","leader":"Tarun S","ps":"PS-04","room":"Anew201","row":12,"col":1},{"team":"AssistIQ","leader":"Monisha.M","ps":"PS-04","room":"Anew201","row":13,"col":0},{"team":"Team Cipher","leader":"Priyan S","ps":"PS-04","room":"Anew201","row":13,"col":1},{"team":"TechNova","leader":"Merilyn Jasmin","ps":"PS-04","room":"Anew201","row":13,"col":2},{"team":"Code crafters","leader":"Vishva k","ps":"PS-04","room":"Anew201","row":14,"col":0},{"team":"Cyphrix","leader":"G Siva","ps":"PS-04","room":"Anew201","row":14,"col":1},{"team":"XSparks","leader":"ARJUN T","ps":"PS-04","room":"Anew201","row":14,"col":2},{"team":"Neural infinity","leader":"Swetha veeram","ps":"PS-04","room":"Anew201","row":15,"col":0},{"team":"ERR501","leader":"Sudheer Krishn","ps":"PS-04","room":"Anew201","row":15,"col":1},{"team":"Echo of Hearts","leader":"ISHWARYA S","ps":"PS-04","room":"Anew201","row":15,"col":2},{"team":"Embedded Minds","leader":"K T NAHULNAA","ps":"PS-10","room":"Anew201","row":16,"col":1},{"team":"Ctrl+Win","leader":"Samyuktha K.S.","ps":"PS-10","room":"Anew201","row":17,"col":0},{"team":"NEXT GEN","leader":"sathya narayan","ps":"PS-10","room":"Anew201","row":17,"col":1},{"team":"Point Break","leader":"Prithvi H","ps":"PS-10","room":"Anew201","row":17,"col":2},{"team":"Innovx","leader":"Hemashree R","ps":"PS-10","room":"Anew201","row":18,"col":0},{"team":"Nexus","leader":"Madhav Rao G","ps":"PS-10","room":"Anew201","row":18,"col":1},{"team":"TEAM ORA","leader":"Nicholas Samue","ps":"PS-10","room":"Anew201","row":18,"col":2},{"team":"The Robbo Sorcerers","leader":"Prajesh M","ps":"PS-10","room":"Anew201","row":19,"col":1},{"team":"The Fab Four","leader":"R.Bharathiraja","ps":"PS-10","room":"Anew201","row":19,"col":2},{"team":"Imperial x","leader":"Shyam S","ps":"PS-10","room":"Anew201","row":20,"col":0},{"team":"Project Zero","leader":"Mayank Sharm","ps":"PS-08","room":"Anew201","row":20,"col":1},{"team":"VORTEX","leader":"Sivaranjanii.m","ps":"PS-08","room":"Anew201","row":20,"col":2},{"team":"The Jumper Wires","leader":"Jabesh Inbaraj","ps":"PS-10","room":"Anew201","row":21,"col":0},{"team":"Empathy Engines","leader":"Abirami L","ps":"PS-08","room":"Anew201","row":21,"col":1},{"team":"TEAM OG","leader":"Hariharan Mura","ps":"PS-08","room":"Anew201","row":21,"col":2},{"team":"Hufflepuff","leader":"Mahalakshmi M","ps":"PS-08","room":"Anew201","row":22,"col":0},{"team":"TEA CODERS","leader":"DEIVA LAKSHM","ps":"PS-08","room":"Anew201","row":22,"col":1},{"team":"Protectech","leader":"Deveshwar S","ps":"PS-08","room":"Anew201","row":22,"col":2},{"team":"The Renovators","leader":"Bharath V","ps":"PS-08","room":"Anew201","row":23,"col":0},{"team":"KUTTY KONCEPTS","leader":"TRISHANTH G","ps":"PS-08","room":"Anew201","row":24,"col":0},{"team":"Vibe Tribe","leader":"Pradeepa","ps":"PS-08","room":"Anew201","row":25,"col":0},{"team":"InkSpire","leader":"Durgaprasad V","ps":"PS-08","room":"Anew201","row":26,"col":0}],"overflow":[]}
+</script>
+<script>
+(function(){
+  // Apply theme from ?theme= query param (set by the app) or saved app theme
+  try {
+    var params = new URLSearchParams(window.location.search);
+    var theme = params.get('theme') || localStorage.getItem('sh_theme') || 'light';
+    theme = theme.replace(/"/g, '');
+    document.body.classList.toggle('dark', theme === 'dark');
+  } catch (e) { /* default light */ }
+
+  var DATA = JSON.parse(document.getElementById('seatData').textContent);
+  var rooms = DATA.rooms;
+  var colors = DATA.colors;
+  var index = DATA.index;
+  var overflow = DATA.overflow;
+
+  var roomLabels = {
+    "Anew202": {title: "Room Anew202", sub: "Tables PS-05 · PS-06 · PS-07 · PS-09 · PS-11", doorSide: "bottom"},
+    "Anew201": {title: "Room Anew201", sub: "Tables PS-01 · PS-02 · PS-03 · PS-04 · PS-08 · PS-10", doorSide: "top"}
+  };
+  var roomOrder = ["Anew202", "Anew201"];
+
+  function esc(s){
+    if(s===null||s===undefined) return '';
+    return String(s).replace(/[&<>"']/g, function(c){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+    });
+  }
+
+  // ---------- Render legend ----------
+  var legendEl = document.getElementById('legend');
+  Object.keys(colors).sort().forEach(function(ps){
+    var chip = document.createElement('div');
+    chip.className = 'chip';
+    chip.innerHTML = '<span class="dot" style="background:'+colors[ps]+'"></span>' + ps;
+    legendEl.appendChild(chip);
+  });
+
+  // ---------- Render rooms ----------
+  var container = document.getElementById('roomsContainer');
+
+  roomOrder.forEach(function(roomKey){
+    var meta = roomLabels[roomKey];
+    var card = document.createElement('div');
+    card.className = 'room-card';
+    card.id = 'room-' + roomKey;
+
+    var head = document.createElement('div');
+    head.className = 'room-head';
+    head.innerHTML = '<h2>'+meta.title+'</h2>';
+    card.appendChild(head);
+
+    function wallBlock(position, isFront){
+      // position: 'wall-top' or 'wall-bottom' (controls border/margin side)
+      // isFront: whether THIS wall is the front (TV + front door) or back (back door only)
+      var wall = document.createElement('div');
+      wall.className = position + ' ' + (isFront ? 'wall-full' : 'wall-simple');
+      var doorLabel = isFront ? 'Front Door' : 'Back Door';
+      if(isFront){
+        wall.innerHTML =
+          '<div style="width:80px;"></div>' +
+          '<div class="tv-icon"><div class="tv-bar"></div><div class="tv-label">TV / Screen</div></div>' +
+          '<div class="front-door-block">' +
+            '<span class="door-badge">🚪 '+doorLabel+'</span>' +
+            '<p class="room-sub">'+meta.sub+'</p>' +
+          '</div>';
+      } else {
+        wall.innerHTML = '<span class="door-badge">🚪 '+doorLabel+'</span>';
+      }
+      return wall;
+    }
+
+    var frontIsTop = (meta.doorSide === 'top');
+    card.appendChild(wallBlock('wall-top', frontIsTop));
+
+    var grid = document.createElement('div');
+    grid.className = 'grid';
+
+    rooms[roomKey].forEach(function(row, ridx){
+      var isSpace = row.every(function(c){return c.type==='space';});
+      var isBlank = row.every(function(c){return c.type==='blank';});
+      var rowEl = document.createElement('div');
+
+      if(isSpace){
+        rowEl.className = 'grid-row row-space';
+        var a = document.createElement('div');
+        a.className = 'aisle';
+        rowEl.appendChild(a);
+        grid.appendChild(rowEl);
+        return;
+      }
+      if(isBlank){
+        rowEl.className = 'grid-row row-blank';
+        grid.appendChild(rowEl);
+        return;
+      }
+
+      rowEl.className = 'grid-row';
+      row.forEach(function(cell){
+        var seatEl = document.createElement('div');
+        if(cell.type === 'seat'){
+          seatEl.className = 'seat';
+          seatEl.style.background = colors[cell.ps] || '#888';
+          if(cell.team){
+            seatEl.innerHTML = '<span class="t-ps">'+cell.ps+'</span><span class="t-name">'+esc(cell.team)+'</span><span class="t-leader">'+esc(cell.leader)+'</span>';
+            seatEl.dataset.team = cell.team.toLowerCase();
+            seatEl.dataset.leader = (cell.leader||'').toLowerCase();
+          } else {
+            seatEl.classList.add('empty');
+            seatEl.innerHTML = '<span class="t-ps">'+cell.ps+'</span><span class="t-name">'+cell.ps+' — unassigned</span>';
+          }
+          seatEl.dataset.ps = cell.ps;
+        } else {
+          seatEl.className = 'seat empty';
+          seatEl.style.visibility = 'hidden';
+        }
+        rowEl.appendChild(seatEl);
+      });
+      grid.appendChild(rowEl);
+    });
+
+    card.appendChild(grid);
+
+    card.appendChild(wallBlock('wall-bottom', !frontIsTop));
+
+    container.appendChild(card);
+  });
+
+  // ---------- Overflow note ----------
+  if(overflow && overflow.length){
+    var note = document.getElementById('overflowNote');
+    var list = document.getElementById('overflowList');
+    overflow.forEach(function(o){
+      var li = document.createElement('li');
+      li.textContent = o.team + ' — ' + o.leader + ' (' + o.ps + ', ' + o.room + ')';
+      list.appendChild(li);
+    });
+    note.style.display = 'block';
+  }
+
+  // ---------- "Your team is here" marker ----------
+  try {
+    var myTeamParam = new URLSearchParams(window.location.search).get('myteam');
+    if (myTeamParam) {
+      var norm = function(s){ return String(s || '').toLowerCase().replace(/[^a-z0-9]/g, ''); };
+      var wanted = norm(myTeamParam);
+      var mySeat = null;
+      document.querySelectorAll('.seat[data-team]').forEach(function(el){
+        if (mySeat) return;
+        if (el.dataset.team === myTeamParam.trim().toLowerCase() || norm(el.dataset.team) === wanted) {
+          mySeat = el;
+        }
+      });
+      if (mySeat) {
+        mySeat.classList.add('you');
+        var badge = document.createElement('span');
+        badge.className = 'you-badge';
+        badge.textContent = 'Your team is here';
+        mySeat.appendChild(badge);
+        setTimeout(function(){
+          mySeat.scrollIntoView({behavior:'smooth', block:'center'});
+        }, 400);
+      }
+    }
+  } catch (e) { /* marker is best-effort */ }
+
+  // ---------- Search ----------
+  var input = document.getElementById('searchInput');
+  var clearBtn = document.getElementById('clearBtn');
+  var resultsEl = document.getElementById('results');
+  var resultCount = document.getElementById('resultCount');
+  var resultList = document.getElementById('resultList');
+
+  function clearHighlights(){
+    document.querySelectorAll('.seat.highlight').forEach(function(el){ el.classList.remove('highlight'); });
+    document.querySelectorAll('.seat.dim').forEach(function(el){ el.classList.remove('dim'); });
+  }
+
+  function runSearch(q){
+    q = q.trim().toLowerCase();
+    clearHighlights();
+    if(!q){
+      resultsEl.classList.remove('show');
+      return;
+    }
+    var matches = index.filter(function(t){
+      return t.team.toLowerCase().indexOf(q) !== -1 || (t.leader||'').toLowerCase().indexOf(q) !== -1;
+    });
+
+    resultsEl.classList.add('show');
+    resultCount.textContent = matches.length + (matches.length===1 ? ' match' : ' matches');
+    resultList.innerHTML = '';
+
+    if(matches.length === 0){
+      resultList.innerHTML = '<div class="no-results">No team or leader matches “'+esc(q)+'”. Try a different spelling.</div>';
+      return;
+    }
+
+    var anySeated = document.querySelectorAll('.seat[data-team], .seat[data-ps]').length > 0;
+    if(anySeated){
+      document.querySelectorAll('.seat').forEach(function(el){
+        if(el.style.visibility !== 'hidden') el.classList.add('dim');
+      });
+    }
+
+    matches.forEach(function(m, i){
+      var card = document.createElement('div');
+      card.className = 'result-card';
+      var seatInfo = m.room ? m.room : (m.overflowRoom ? (m.overflowRoom + ' · extra seat') : 'Not yet seated');
+      var pillClass = m.room ? 'pill' : 'pill warn';
+      card.innerHTML =
+        '<div class="rc-left">' +
+          '<div class="rc-swatch" style="background:'+(colors[m.ps]||'#888')+'"></div>' +
+          '<div><div class="rc-name">'+esc(m.team)+'</div><div class="rc-leader">'+esc(m.leader)+'</div></div>' +
+        '</div>' +
+        '<div class="rc-meta"><span class="pill">'+m.ps+'</span><span class="'+pillClass+'">'+seatInfo+'</span></div>';
+
+      card.addEventListener('click', function(){
+        highlightAndScroll(m);
+      });
+      resultList.appendChild(card);
+
+      if(i===0) highlightAndScroll(m);
+    });
+  }
+
+  function highlightAndScroll(m){
+    clearHighlights();
+    if(!m.room) return;
+    var roomCard = document.getElementById('room-' + m.room);
+    if(!roomCard) return;
+    var seats = roomCard.querySelectorAll('.seat[data-team]');
+    var target = null;
+    seats.forEach(function(el){
+      if(el.dataset.team === m.team.toLowerCase() && el.dataset.leader === (m.leader||'').toLowerCase()){
+        target = el;
+      }
+    });
+    document.querySelectorAll('.seat').forEach(function(el){
+      if(el.style.visibility !== 'hidden' && el !== target) el.classList.add('dim');
+    });
+    if(target){
+      target.classList.add('highlight');
+      target.classList.remove('dim');
+      target.scrollIntoView({behavior:'smooth', block:'center'});
+    }
+  }
+
+  input.addEventListener('input', function(){
+    clearBtn.classList.toggle('show', input.value.length>0);
+    runSearch(input.value);
+  });
+  clearBtn.addEventListener('click', function(){
+    input.value = '';
+    clearBtn.classList.remove('show');
+    runSearch('');
+    input.focus();
+  });
+})();
+
+</script>
+</body>
+</html>
