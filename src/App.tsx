@@ -30,6 +30,7 @@ const AdminSubmissions = lazy(() => import('@/pages/admin/AdminSubmissions'));
 const AdminAnalytics = lazy(() => import('@/pages/admin/AdminAnalytics'));
 const AdminProblemStats = lazy(() => import('@/pages/admin/AdminProblemStats'));
 const AdminSettings = lazy(() => import('@/pages/admin/AdminSettings'));
+const AdminVenue = lazy(() => import('@/pages/admin/AdminVenue'));
 const AdminLoginPage = lazy(() => import('@/pages/admin/AdminLoginPage'));
 
 function PageFallback() {
@@ -102,6 +103,7 @@ const router = createBrowserRouter([
           { path: 'submissions', element: <AdminSubmissions /> },
           { path: 'problems', element: <AdminProblemStats /> },
           { path: 'analytics', element: <AdminAnalytics /> },
+          { path: 'venue', element: <AdminVenue /> },
           { path: 'settings', element: <AdminSettings /> },
         ],
       },

@@ -24,7 +24,7 @@ export default function DashboardHeader({ title, subtitle, breadcrumbs, actions 
           </div>
         )}
 
-        <div className="flex items-start justify-between gap-3 sm:items-center sm:gap-6">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
           <div className="min-w-0 flex-1">
             <h1 className="font-display text-xl font-bold text-slate-900 dark:text-white sm:text-2xl">
               {title}
@@ -34,7 +34,7 @@ export default function DashboardHeader({ title, subtitle, breadcrumbs, actions 
             )}
           </div>
 
-          <div className="flex shrink-0 items-center gap-2">
+          <div className="flex shrink-0 flex-wrap items-center gap-2">
             {actions}
             <div className="hidden lg:block">
               <ThemeToggle />

@@ -135,8 +135,8 @@ export default function DataTable<T extends { id: string }>({
         {selectFilters && selectFilters.length > 0 && (
           <div className="flex flex-wrap items-center gap-2">
             {selectFilters.map((sf) => (
-              <label key={sf.id} className="flex items-center gap-2">
-                <span className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+              <label key={sf.id} className="flex w-full items-center gap-2 sm:w-auto">
+                <span className="shrink-0 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
                   {sf.label}
                 </span>
                 <select
@@ -145,7 +145,7 @@ export default function DataTable<T extends { id: string }>({
                     setSelectValues((prev) => ({ ...prev, [sf.id]: e.target.value }));
                     resetPage();
                   }}
-                  className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
+                  className="min-w-0 flex-1 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 sm:flex-none"
                 >
                   {sf.options.map((opt) => (
                     <option key={opt.value} value={opt.value}>
